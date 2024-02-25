@@ -1,22 +1,24 @@
 use anyhow::{bail, Context};
-use sqlx::{MySqlPool, PgPool, Row};
+use sqlx::{Execute, PgPool, Postgres, QueryBuilder, Row};
 use time::{Date, Duration, Month, OffsetDateTime};
+use uuid::Uuid;
 
 use crate::{
     db::tables::OPENING_BALANCE_TABLE_NAME,
     enums::PositionEnum,
     types::UserID,
     utils::{
-        get_hong_kong_11_hours,
+        get_hong_kong_11_hours, get_hong_kong_11_hours_from_date,
         query_helper::{get_archive_schema_name, get_dynamic_table_name},
+        State,
     },
 };
 
 pub async fn create_opening_balance_records(
-    mysql_pool: &MySqlPool,
     pg_pool: &PgPool,
+    state: &mut State,
 ) -> anyhow::Result<()> {
-    let last_opening_balance_date = find_last_opening_balance_record(mysql_pool).await?;
+    let last_opening_balance_date = find_last_opening_balance_record(pg_pool).await?;
     let tomorrow = OffsetDateTime::now_utc().date() + Duration::days(1);
 
     if last_opening_balance_date >= tomorrow {
@@ -34,15 +36,44 @@ pub async fn create_opening_balance_records(
         let players_chunk_len = players_chunk.len();
 
         for user in players_chunk {
-            user_ids.push(user.user_id);
-            // TODO:
-            // if (user.isCredit) {
-            //   BetArchiverProcedure.creditPlayers.add(user.userID);
-            // }
+            user_ids.push(user.user_id.clone());
+
+            if user.is_credit {
+                state.add_credit_player(user.user_id);
+            }
         }
 
         if players_chunk_len < limit as usize {
             break;
+        }
+
+        let opening_balance_records =
+            get_opening_balance_records(pg_pool, last_opening_balance_date, user_ids).await?;
+
+        let mut new_opening_balance_date = last_opening_balance_date;
+
+        loop {
+            new_opening_balance_date += Duration::days(1);
+            let opening_balance_records: Vec<OpeningBalance> = opening_balance_records
+                .iter()
+                .map(|ob| OpeningBalance {
+                    id: Uuid::new_v4(),
+                    creation_date: new_opening_balance_date,
+                    ..ob.clone()
+                })
+                .collect();
+
+            insert_opening_balance_records(
+                pg_pool,
+                opening_balance_records,
+                &get_archive_schema_name(new_opening_balance_date),
+                &get_dynamic_table_name(OPENING_BALANCE_TABLE_NAME, new_opening_balance_date),
+            )
+            .await?;
+
+            if new_opening_balance_date >= tomorrow {
+                break;
+            }
         }
 
         players_offset += limit;
@@ -51,7 +82,7 @@ pub async fn create_opening_balance_records(
     Ok(())
 }
 
-async fn find_last_opening_balance_record(pool: &MySqlPool) -> anyhow::Result<Date> {
+async fn find_last_opening_balance_record(pool: &PgPool) -> anyhow::Result<Date> {
     let mut current_date = get_hong_kong_11_hours().date();
 
     loop {
@@ -75,7 +106,7 @@ async fn find_last_opening_balance_record(pool: &MySqlPool) -> anyhow::Result<Da
 }
 
 async fn get_last_opening_balance_creation_date(
-    pool: &MySqlPool,
+    pool: &PgPool,
     db_schema: String,
     table_name: String,
 ) -> anyhow::Result<Option<Date>> {
@@ -137,4 +168,77 @@ async fn get_player_chunk(pool: &PgPool, limit: i64, offset: i64) -> anyhow::Res
     .fetch_all(pool)
     .await
     .context("Failed to fetch a chunk of players")
+}
+
+#[derive(sqlx::FromRow, Clone)]
+struct OpeningBalance {
+    id: Uuid,
+    amount: i64,
+    creation_date: Date,
+    user_id: Uuid,
+}
+
+async fn get_opening_balance_records(
+    pool: &PgPool,
+    date: Date,
+    user_ids: Vec<UserID>,
+) -> anyhow::Result<Vec<OpeningBalance>> {
+    let schema = get_archive_schema_name(date);
+    let table = get_dynamic_table_name(OPENING_BALANCE_TABLE_NAME, date);
+    let user_ids: Vec<Uuid> = user_ids.into_iter().map(|id| id.0).collect();
+
+    let result: Vec<OpeningBalance> = sqlx::query_as(&format!(
+        r#"
+            SELECT
+                id,
+                amount,
+                creation_date,
+                user_id
+            FROM {schema}.{table}
+            WHERE creation_date = $1 AND user_id = ANY($2)
+        "#
+    ))
+    .bind(get_hong_kong_11_hours_from_date(date))
+    .bind(user_ids)
+    .fetch_all(pool)
+    .await?;
+
+    Ok(result)
+}
+
+async fn insert_opening_balance_records(
+    pool: &PgPool,
+    records: Vec<OpeningBalance>,
+    db_schema: &str,
+    table_name: &str,
+) -> anyhow::Result<()> {
+    let mut query_build: QueryBuilder<Postgres> = QueryBuilder::new(&format!(
+        r#"INSERT INTO {db_schema}.{table_name} AS t (id, amount, creation_date, user_id)"#
+    ));
+
+    query_build.push_values(records.into_iter(), |mut b, r| {
+        b.push_bind(r.id)
+            .push_bind(r.amount)
+            .push_bind(r.creation_date)
+            .push_bind(r.user_id);
+    });
+
+    let mut query = query_build.build();
+
+    let sql = format!(
+        r#"
+            {}
+            ON CONFLICT creation_date, user_id
+            DO UPDATE SET
+                amount = t.amount + EXCLUDED.amount
+        "#,
+        query.sql()
+    );
+
+    sqlx::query_with(&sql, query.take_arguments().unwrap())
+        .execute(pool)
+        .await
+        .context("Failed to insert opening balance records")?;
+
+    Ok(())
 }
