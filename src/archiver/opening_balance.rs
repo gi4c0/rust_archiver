@@ -43,10 +43,6 @@ pub async fn create_opening_balance_records(
             }
         }
 
-        if players_chunk_len < limit as usize {
-            break;
-        }
-
         let opening_balance_records =
             get_opening_balance_records(pg_pool, last_opening_balance_date, user_ids).await?;
 
@@ -58,7 +54,7 @@ pub async fn create_opening_balance_records(
                 .iter()
                 .map(|ob| OpeningBalance {
                     id: Uuid::new_v4(),
-                    creation_date: new_opening_balance_date,
+                    creation_date: get_hong_kong_11_hours_from_date(new_opening_balance_date),
                     ..ob.clone()
                 })
                 .collect();
@@ -66,14 +62,17 @@ pub async fn create_opening_balance_records(
             insert_opening_balance_records(
                 pg_pool,
                 opening_balance_records,
-                &get_archive_schema_name(new_opening_balance_date),
-                &get_dynamic_table_name(OPENING_BALANCE_TABLE_NAME, new_opening_balance_date),
+                new_opening_balance_date,
             )
             .await?;
 
             if new_opening_balance_date >= tomorrow {
                 break;
             }
+        }
+
+        if players_chunk_len < limit as usize {
+            break;
         }
 
         players_offset += limit;
@@ -120,7 +119,8 @@ async fn get_last_opening_balance_creation_date(
         "#,
     ))
     .fetch_optional(pool)
-    .await?;
+    .await
+    .context("Failed to fetch opening balance date")?;
 
     if let Some(result) = result {
         let creation_date: OffsetDateTime = result.try_get("creation_date")?;
@@ -170,12 +170,12 @@ async fn get_player_chunk(pool: &PgPool, limit: i64, offset: i64) -> anyhow::Res
     .context("Failed to fetch a chunk of players")
 }
 
-#[derive(sqlx::FromRow, Clone)]
-struct OpeningBalance {
-    id: Uuid,
-    amount: i64,
-    creation_date: Date,
-    user_id: Uuid,
+#[derive(sqlx::FromRow, Clone, Debug)]
+pub struct OpeningBalance {
+    pub id: Uuid,
+    pub amount: i64,
+    pub creation_date: OffsetDateTime,
+    pub user_id: Uuid,
 }
 
 async fn get_opening_balance_records(
@@ -201,19 +201,22 @@ async fn get_opening_balance_records(
     .bind(get_hong_kong_11_hours_from_date(date))
     .bind(user_ids)
     .fetch_all(pool)
-    .await?;
+    .await
+    .context("Failed to fetch opening balance records")?;
 
     Ok(result)
 }
 
-async fn insert_opening_balance_records(
+pub async fn insert_opening_balance_records(
     pool: &PgPool,
     records: Vec<OpeningBalance>,
-    db_schema: &str,
-    table_name: &str,
+    date: Date,
 ) -> anyhow::Result<()> {
+    let db_schema = get_archive_schema_name(date);
+    let table_name = get_dynamic_table_name(OPENING_BALANCE_TABLE_NAME, date);
+
     let mut query_build: QueryBuilder<Postgres> = QueryBuilder::new(&format!(
-        r#"INSERT INTO {db_schema}.{table_name} AS t (id, amount, creation_date, user_id)"#
+        r#"INSERT INTO {db_schema}.{table_name} AS t(id, amount, creation_date, user_id) "#
     ));
 
     query_build.push_values(records.into_iter(), |mut b, r| {
@@ -228,9 +231,8 @@ async fn insert_opening_balance_records(
     let sql = format!(
         r#"
             {}
-            ON CONFLICT creation_date, user_id
-            DO UPDATE SET
-                amount = t.amount + EXCLUDED.amount
+            ON CONFLICT (creation_date, user_id)
+            DO UPDATE SET amount = t.amount + EXCLUDED.amount
         "#,
         query.sql()
     );
@@ -238,6 +240,11 @@ async fn insert_opening_balance_records(
     sqlx::query_with(&sql, query.take_arguments().unwrap())
         .execute(pool)
         .await
+        .map_err(|e| {
+            dbg!(&e);
+            dbg!(&sql);
+            e
+        })
         .context("Failed to insert opening balance records")?;
 
     Ok(())

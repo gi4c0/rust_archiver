@@ -1,4 +1,5 @@
 #[repr(u8)]
+#[derive(Clone)]
 pub enum PositionEnum {
     Owner = 0,
     Company = 1,

@@ -2,7 +2,7 @@ use std::hash::Hash;
 
 use uuid::Uuid;
 
-#[derive(PartialEq, Eq, Clone)]
+#[derive(PartialEq, Eq, Clone, Debug)]
 pub struct UserID(pub Uuid);
 
 impl Hash for UserID {

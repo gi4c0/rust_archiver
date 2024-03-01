@@ -1,18 +1,22 @@
 pub mod query_helper;
 mod time;
 
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 pub use time::*;
-use tokio::sync::Mutex;
 
 use crate::types::UserID;
 
+#[derive(Default, Debug)]
 pub struct State {
     credit_players: HashMap<UserID, bool>,
 }
 
 impl State {
+    pub fn new() -> Self {
+        State::default()
+    }
+
     pub fn add_credit_player(&mut self, player_id: UserID) {
         self.credit_players.insert(player_id, true);
     }
@@ -24,5 +28,3 @@ impl State {
         }
     }
 }
-
-pub type SharedState = Arc<Mutex<State>>;
