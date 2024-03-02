@@ -1,8 +1,12 @@
 use claims::assert_ok;
 use lib::archiver::opening_balance::create_opening_balance_records;
+use lib::archiver::opening_balance::loader::get_last_opening_balance_creation_date;
+use lib::db::tables::OPENING_BALANCE_TABLE_NAME;
 use lib::types::UserID;
+use lib::utils::query_helper::{get_archive_schema_name, get_dynamic_table_name};
 use lib::utils::State;
 use sqlx::PgPool;
+use time::{Duration, OffsetDateTime};
 
 use crate::helper::db::create_test_connection;
 use crate::helper::test_data::prepare_data;
@@ -19,11 +23,20 @@ async fn finds_last_opening_balance_and_creates_new_records() {
 
     let credit_user_ids = get_credit_players_ids(&pg_pool).await;
 
-    dbg!(&state);
-    dbg!(&credit_user_ids);
     for id in credit_user_ids {
         assert!(state.is_credit_player(id));
     }
+
+    let now = OffsetDateTime::now_utc().date() + Duration::DAY;
+
+    let last_opening_balance_record = get_last_opening_balance_creation_date(
+        &pg_pool,
+        get_archive_schema_name(now),
+        get_dynamic_table_name(OPENING_BALANCE_TABLE_NAME, now),
+    )
+    .await;
+
+    assert_eq!(last_opening_balance_record.unwrap().unwrap(), now);
 }
 
 async fn get_credit_players_ids(pg_pool: &PgPool) -> Vec<UserID> {

@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use lib::{
-    archiver::opening_balance::{insert_opening_balance_records, OpeningBalance},
+    archiver::opening_balance::loader::{insert_opening_balance_records, OpeningBalance},
     utils::{get_hong_kong_11_hours_from_date, query_helper::get_archive_schema_name},
 };
 use sqlx::PgPool;
