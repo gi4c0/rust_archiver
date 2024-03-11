@@ -35,7 +35,6 @@ async fn finds_last_opening_balance_and_creates_new_records() {
         get_dynamic_table_name(OPENING_BALANCE_TABLE_NAME, now),
     )
     .await;
-
     assert_eq!(last_opening_balance_record.unwrap().unwrap(), now);
 }
 

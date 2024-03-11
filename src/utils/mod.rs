@@ -3,13 +3,20 @@ mod time;
 
 use std::collections::HashMap;
 
+use ::time::Date;
 pub use time::*;
 
-use crate::types::UserID;
+use crate::{
+    archiver::bets::loader::User,
+    types::{UserID, Username},
+};
 
 #[derive(Default, Debug)]
 pub struct State {
-    credit_players: HashMap<UserID, bool>,
+    pub credit_players: HashMap<UserID, bool>,
+    pub username_by_user_id: HashMap<UserID, Username>,
+    pub upline: HashMap<UserID, Vec<User>>,
+    pub wl_by_date_by_user: HashMap<Date, HashMap<UserID, i64>>,
 }
 
 impl State {
