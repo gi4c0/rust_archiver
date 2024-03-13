@@ -1,3 +1,4 @@
+use parse_display::Display;
 use serde::{Deserialize, Serialize};
 
 pub mod bet;
@@ -27,4 +28,41 @@ impl From<i16> for PositionEnum {
             _ => panic!("Invalid position value in DB"),
         }
     }
+}
+
+#[derive(Serialize, Deserialize, Display)]
+pub enum Language {
+    #[serde(rename = "en")]
+    #[display("en")]
+    English,
+    #[serde(rename = "th")]
+    #[display("th")]
+    Thai,
+    #[serde(rename = "zh")]
+    #[display("zh")]
+    Chinese,
+    #[serde(rename = "ms")]
+    #[display("ms")]
+    Malay,
+    #[serde(rename = "id")]
+    #[display("id")]
+    Indonesian,
+    #[serde(rename = "lo")]
+    #[display("lo")]
+    Laotian,
+    #[serde(rename = "vi")]
+    #[display("vi")]
+    Vietnamese,
+    #[serde(rename = "tl")]
+    #[display("tl")]
+    Tagalog,
+    #[serde(rename = "hi")]
+    #[display("hi")]
+    Hindi,
+    #[serde(rename = "ko")]
+    #[display("ko")]
+    Korean,
+    #[serde(rename = "ja")]
+    #[display("ja")]
+    Japanese,
 }

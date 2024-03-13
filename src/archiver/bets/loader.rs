@@ -5,7 +5,9 @@ use time::{Date, Duration, OffsetDateTime};
 
 use crate::{
     enums::{bet::BetStatus, PositionEnum},
-    types::{AmountByPosition, BetID, Currency, UserID, Username},
+    types::{
+        AmountByPosition, BetID, Currency, ProviderBetID, ProviderGameVendorID, UserID, Username,
+    },
     utils::get_hong_kong_11_hours_from_date,
 };
 
@@ -89,8 +91,8 @@ pub struct Bet {
     pub replay: String,
     pub transaction_ids: Vec<String>,
     pub transactions: Vec<String>,
-    pub provider_bet_id: String,
-    pub provider_game_vendor_id: String,
+    pub provider_bet_id: ProviderBetID,
+    pub provider_game_vendor_id: ProviderGameVendorID,
     pub provider_game_vendor_label: String,
 }
 

@@ -42,13 +42,12 @@ pub async fn handle_bet_chunk(
 
         let figures_date = get_figures_date(bet.last_status_change);
 
-        let wl_by_user = wl_by_date_by_user
+        wl_by_date_by_user
             .entry(figures_date)
-            .or_insert_with(HashMap::new);
-
-        let previous_wl = wl_by_user.get(&bet.user_id).unwrap_or(&0);
-
-        wl_by_user.insert(bet.user_id.clone(), bet.wl.unwrap_or(0) + previous_wl);
+            .or_insert_with(HashMap::new)
+            .entry(bet.user_id.clone())
+            .and_modify(|e| *e += bet.wl.unwrap_or(0))
+            .or_insert(bet.wl.unwrap_or(0));
 
         if !state.credit_players.contains_key(&bet.user_id) {
             let existing_debts = debts.entry(figures_date).or_insert_with(HashMap::new);
