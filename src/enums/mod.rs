@@ -2,6 +2,7 @@ use parse_display::Display;
 use serde::{Deserialize, Serialize};
 
 pub mod bet;
+pub mod provider;
 
 #[repr(u8)]
 #[derive(Clone, Deserialize, Serialize, Debug, Copy)]

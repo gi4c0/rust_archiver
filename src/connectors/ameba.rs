@@ -11,7 +11,7 @@ pub struct AmebaConnector {
 }
 
 #[derive(Serialize, Deserialize)]
-#[serde(rename = "camelCase")]
+#[serde(rename_all = "camelCase")]
 pub struct AmebaConfig {
     pub secret_key: String,
     pub api_url: Url,
