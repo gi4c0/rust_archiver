@@ -1,5 +1,6 @@
 use std::hash::Hash;
 
+use parse_display::Display;
 use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
 use uuid::Uuid;
@@ -8,7 +9,7 @@ use uuid::Uuid;
 #[sqlx(transparent)]
 pub struct UserID(pub Uuid);
 
-#[derive(PartialEq, Eq, Clone, Debug, FromRow, sqlx::Type, Deserialize, Serialize)]
+#[derive(PartialEq, Eq, Clone, Debug, FromRow, sqlx::Type, Deserialize, Serialize, Display)]
 #[sqlx(transparent)]
 pub struct Username(pub String);
 

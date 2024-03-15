@@ -27,6 +27,7 @@ pub fn des_cbc_encrypt(target: &str, key: &str, iv: &str) -> anyhow::Result<Stri
 }
 
 pub fn des_cbc_decrypt(target: &str, key: &str, iv: &str) -> anyhow::Result<String> {
+    let _provider = openssl::provider::Provider::try_load(None, "legacy", true).unwrap();
     let encrypted_data = general_purpose::STANDARD.decode(target).unwrap();
 
     let cipher = Cipher::des_cbc();
