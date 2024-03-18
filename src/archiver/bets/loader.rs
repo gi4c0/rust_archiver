@@ -1,5 +1,4 @@
 use anyhow::Context;
-use serde::{Deserialize, Serialize};
 use sqlx::{prelude::FromRow, PgPool, Transaction};
 use time::{Date, Duration, OffsetDateTime};
 

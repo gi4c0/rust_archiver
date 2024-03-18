@@ -11,24 +11,32 @@ use crate::{
     utils::crypto,
 };
 
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct RoyalSlotGamingConfig {
     pub web_id: String,
     pub system_code: String,
+    #[serde(rename = "clientID")]
     pub client_id: String,
     pub client_secret: String,
     pub api_url: Url,
     pub des_key: String,
+    #[serde(rename = "desIV")]
     pub des_iv: String,
     pub ip_list: Vec<Ipv4Addr>,
 }
 
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct RoyalSlotGamingGameConfig {
-    pub label: ProviderGameLabel,
+    pub game_label: ProviderGameLabel,
+    #[serde(rename = "gameID")]
     pub game_id: ProviderGameVendorID,
     // TODO: SELECT type AS "game_type"
     pub game_type: ProviderGameKind,
 }
 
+#[derive(Debug)]
 pub struct Connector {
     config: RoyalSlotGamingConfig,
     games_by_vendor_id: HashMap<ProviderGameVendorID, RoyalSlotGamingGameConfig>,

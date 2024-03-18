@@ -26,11 +26,11 @@ pub struct PragmaticConfig {
 }
 
 #[derive(Deserialize, Debug)]
-pub struct PragmaticConnector {
+pub struct Connector {
     config: PragmaticConfig,
 }
 
-impl PragmaticConnector {
+impl Connector {
     pub fn new(config: PragmaticConfig) -> Self {
         Self { config }
     }

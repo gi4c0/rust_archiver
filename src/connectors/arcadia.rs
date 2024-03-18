@@ -6,10 +6,13 @@ use serde::{Deserialize, Serialize};
 
 use crate::types::{ProviderBetID, Url};
 
+#[derive(Debug)]
 pub struct Connector {
     config: ArcadiaConfig,
 }
 
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct ArcadiaConfig {
     pub api_url: Url,
     pub authentication: String,

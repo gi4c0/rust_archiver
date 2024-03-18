@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::types::{ProviderBetID, Url, Username};
 
-impl AeConnector {
+impl Connector {
     pub fn new(config: Config) -> Self {
         Self { config }
     }
@@ -64,7 +64,8 @@ pub struct Config {
     pub ip_list: Vec<Ipv4Addr>,
 }
 
-pub struct AeConnector {
+#[derive(Debug)]
+pub struct Connector {
     config: Config,
 }
 

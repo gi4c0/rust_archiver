@@ -6,11 +6,12 @@ use serde::{Deserialize, Serialize};
 
 use crate::types::{ProviderBetID, Url, Username};
 
-pub struct AmebaConnector {
+#[derive(Debug)]
+pub struct Connector {
     config: AmebaConfig,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct AmebaConfig {
     pub secret_key: String,
@@ -20,7 +21,7 @@ pub struct AmebaConfig {
     pub ip_list: Vec<Ipv4Addr>,
 }
 
-impl AmebaConnector {
+impl Connector {
     pub fn new(config: AmebaConfig) -> Self {
         Self { config }
     }

@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::types::{BetID, Url, Username};
 
+#[derive(Debug)]
 pub struct Connector {
     config: KingMakerConfig,
 }
