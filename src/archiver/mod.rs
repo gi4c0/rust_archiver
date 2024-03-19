@@ -3,7 +3,7 @@ pub mod opening_balance;
 
 use sqlx::{MySqlPool, PgPool};
 
-use crate::{db::tables::BET_TABLES, utils::State};
+use crate::{db::tables::BET_TABLES, helpers::State};
 
 use self::bets::loader::get_target_data_bench;
 

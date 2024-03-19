@@ -1,15 +1,16 @@
-use anyhow::Result;
-use utils::State;
+use helpers::State;
+
+use crate::helpers::logger::log_error;
 
 pub mod archiver;
 pub mod configuration;
 pub mod connectors;
 pub mod db;
 pub mod enums;
+pub mod helpers;
 pub mod types;
-pub mod utils;
 
-async fn prepare_data_and_run() -> Result<()> {
+pub async fn launch() {
     dotenvy::dotenv().expect("Failed to parse .env");
 
     let config = configuration::parse_config();
@@ -20,12 +21,7 @@ async fn prepare_data_and_run() -> Result<()> {
     let connectors = connectors::load_connectors(&pg).await.unwrap();
     let mut state = State::new(connectors);
 
-    archiver::run(&pg, &mysql, &mut state).await
-}
-
-pub async fn launch() {
-    if let Err(e) = prepare_data_and_run().await {
-        // TODO: log
-        panic!("{e}");
+    if let Err(e) = archiver::run(&pg, &mysql, &mut state).await {
+        log_error(&pg, e).await.unwrap();
     }
 }

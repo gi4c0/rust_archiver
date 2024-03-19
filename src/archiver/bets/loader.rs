@@ -4,10 +4,10 @@ use time::{Date, Duration, OffsetDateTime};
 
 use crate::{
     enums::{bet::BetStatus, PositionEnum},
+    helpers::get_hong_kong_11_hours_from_date,
     types::{
         AmountByPosition, BetID, Currency, ProviderBetID, ProviderGameVendorID, UserID, Username,
     },
-    utils::get_hong_kong_11_hours_from_date,
 };
 
 pub async fn get_target_data_bench(

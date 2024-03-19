@@ -6,11 +6,11 @@ use uuid::Uuid;
 use crate::{
     db::tables::OPENING_BALANCE_TABLE_NAME,
     enums::PositionEnum,
-    types::UserID,
-    utils::{
+    helpers::{
         get_hong_kong_11_hours_from_date,
         query_helper::{get_archive_schema_name, get_dynamic_table_name},
     },
+    types::UserID,
 };
 
 pub async fn get_last_opening_balance_creation_date(

@@ -1,4 +1,4 @@
-use lib::utils::query_helper::get_double_digit_month;
+use lib::helpers::query_helper::get_double_digit_month;
 use sqlx::PgPool;
 use time::Date;
 

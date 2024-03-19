@@ -4,8 +4,8 @@ use sqlx::Transaction;
 use time::{macros::time, Date, Duration, OffsetDateTime};
 
 use crate::{
+    helpers::State,
     types::{BetID, Currency, UserID},
-    utils::State,
 };
 
 use self::loader::{get_upline, Bet};

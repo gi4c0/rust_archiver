@@ -2,9 +2,9 @@ use claims::assert_ok;
 use lib::archiver::opening_balance::create_opening_balance_records;
 use lib::archiver::opening_balance::loader::get_last_opening_balance_creation_date;
 use lib::db::tables::OPENING_BALANCE_TABLE_NAME;
+use lib::helpers::query_helper::{get_archive_schema_name, get_dynamic_table_name};
+use lib::helpers::State;
 use lib::types::UserID;
-use lib::utils::query_helper::{get_archive_schema_name, get_dynamic_table_name};
-use lib::utils::State;
 use sqlx::PgPool;
 use time::{Duration, OffsetDateTime};
 

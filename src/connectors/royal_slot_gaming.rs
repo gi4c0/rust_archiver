@@ -7,8 +7,8 @@ use serde::{Deserialize, Serialize};
 use crate::{
     archiver::bets::loader::Bet,
     enums::{provider::ProviderGameKind, Language},
+    helpers::crypto,
     types::{Currency, ProviderBetID, ProviderGameLabel, ProviderGameVendorID, Url, Username},
-    utils::crypto,
 };
 
 #[derive(Deserialize, Debug)]
