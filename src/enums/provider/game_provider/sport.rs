@@ -1,10 +1,13 @@
-use parse_display::Display;
+use strum_macros::{AsRefStr, EnumString};
 
-#[derive(Debug, Display)]
-#[display(style = "snake_case")]
+#[derive(Debug, AsRefStr, EnumString)]
 pub enum Sportsbook {
+    #[strum(serialize = "single_live")]
     SingleLive,
+    #[strum(serialize = "single_non_live")]
     SingleNonLive,
+    #[strum(serialize = "combo")]
     Combo,
+    #[strum(serialize = "parlay")]
     Parlay,
 }

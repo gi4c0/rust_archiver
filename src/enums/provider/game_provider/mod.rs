@@ -1,31 +1,24 @@
-use std::str::FromStr;
-
-use anyhow::{anyhow, Result};
-
 mod live_casino_provider;
 mod lottery;
 mod online_casino_provider;
 mod slot_provider;
 mod sport;
 
+use std::str::FromStr;
+
+use anyhow::{anyhow, Result};
 pub use live_casino_provider::*;
 pub use lottery::*;
 pub use online_casino_provider::*;
-use parse_display::Display;
 pub use slot_provider::*;
 pub use sport::*;
 
-#[derive(Debug, Display)]
+#[derive(Debug)]
 pub enum GameProvider {
-    #[display("{0}")]
     LiveCasino(LiveCasinoProvider),
-    #[display("{0}")]
     Slot(SlotProvider),
-    #[display("{0}")]
     Lottery(Lottery),
-    #[display("{0}")]
     Sport(Sportsbook),
-    #[display("{0}")]
     OnlineCasino(OnlineCasinoProvider),
 }
 
@@ -181,6 +174,18 @@ impl FromStr for GameProvider {
             "combo" => Ok(GameProvider::Sport(Sportsbook::Combo)),
             "parlay" => Ok(GameProvider::Sport(Sportsbook::Parlay)),
             _ => Err(anyhow!("Unexpected provider name: '{value}'")),
+        }
+    }
+}
+
+impl AsRef<str> for GameProvider {
+    fn as_ref(&self) -> &str {
+        match self {
+            GameProvider::Slot(p) => p.as_ref(),
+            GameProvider::OnlineCasino(p) => p.as_ref(),
+            GameProvider::LiveCasino(p) => p.as_ref(),
+            GameProvider::Sport(p) => p.as_ref(),
+            GameProvider::Lottery(p) => p.as_ref(),
         }
     }
 }

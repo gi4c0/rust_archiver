@@ -1,83 +1,83 @@
-use parse_display::Display;
+use strum_macros::{AsRefStr, EnumString};
 
-#[derive(Debug, Display)]
+#[derive(Debug, AsRefStr, EnumString)]
 pub enum SlotProvider {
-    #[display("slot_xo_slot")]
+    #[strum(serialize = "slot_xo_slot")]
     SlotXO,
-    #[display("pg_slot")]
+    #[strum(serialize = "pg_slot")]
     PG,
-    #[display("evoplay_slot")]
+    #[strum(serialize = "evoplay_slot")]
     Evoplay,
-    #[display("simpleplay")]
+    #[strum(serialize = "simpleplay")]
     SimplePlay,
-    #[display("spade")]
+    #[strum(serialize = "spade")]
     Spade,
-    #[display("ambpoker_slot")]
+    #[strum(serialize = "ambpoker_slot")]
     AmbPoker,
-    #[display("ambslot_slot")]
+    #[strum(serialize = "ambslot_slot")]
     AmbSlot,
-    #[display("pragmatic_slot")]
+    #[strum(serialize = "pragmatic_slot")]
     Pragmatic,
-    #[display("dragoon_slot")]
+    #[strum(serialize = "dragoon_slot")]
     Dragoon,
-    #[display("jili_slot")]
+    #[strum(serialize = "jili_slot")]
     Jili,
-    #[display("mannaplay")]
+    #[strum(serialize = "mannaplay")]
     MannaPlay,
-    #[display("royal_slot_gaming")]
+    #[strum(serialize = "royal_slot_gaming")]
     RoyalSlotGaming,
-    #[display("mg_slot")]
+    #[strum(serialize = "mg_slot")]
     MG,
-    #[display("upg_slot")]
+    #[strum(serialize = "upg_slot")]
     UPG,
-    #[display("gaming_soft_slot")]
+    #[strum(serialize = "gaming_soft_slot")]
     GamingSoft,
-    #[display("ygg_slot")]
+    #[strum(serialize = "ygg_slot")]
     YGG,
-    #[display("slotmill")]
+    #[strum(serialize = "slotmill")]
     Slotmill,
-    #[display("habanero_slot")]
+    #[strum(serialize = "habanero_slot")]
     Habanero,
-    #[display("astro_tech_slot")]
+    #[strum(serialize = "astro_tech_slot")]
     AstroTech,
-    #[display("wazdan")]
+    #[strum(serialize = "wazdan")]
     Wazdan,
-    #[display("all_way_spin_slot")]
+    #[strum(serialize = "all_way_spin_slot")]
     AllWaySpin,
-    #[display("booongo")]
+    #[strum(serialize = "booongo")]
     Booongo,
-    #[display("funta_slot")]
+    #[strum(serialize = "funta_slot")]
     FunTa,
-    #[display("iconic_gaming_slot")]
+    #[strum(serialize = "iconic_gaming_slot")]
     IconicGaming,
-    #[display("gamatron")]
+    #[strum(serialize = "gamatron")]
     Gamatron,
-    #[display("ka_gaming_slot")]
+    #[strum(serialize = "ka_gaming_slot")]
     KaGaming,
-    #[display("play_son")]
+    #[strum(serialize = "play_son")]
     PlaySon,
-    #[display("wm_slot")]
+    #[strum(serialize = "wm_slot")]
     WM,
-    #[display("ameba")]
+    #[strum(serialize = "ameba")]
     Ameba,
-    #[display("i8")]
+    #[strum(serialize = "i8")]
     I8,
-    #[display("creative_gaming")]
+    #[strum(serialize = "creative_gaming")]
     CreativeGaming,
-    #[display("red_tiger_slot")]
+    #[strum(serialize = "red_tiger_slot")]
     RedTiger,
-    #[display("netent_slot")]
+    #[strum(serialize = "netent_slot")]
     Netent,
-    #[display("relax")]
+    #[strum(serialize = "relax")]
     Relax,
-    #[display("ninja_slot")]
+    #[strum(serialize = "ninja_slot")]
     Ninja,
-    #[display("kiss_slot")]
+    #[strum(serialize = "kiss_slot")]
     Kiss,
-    #[display("spinix_slot")]
+    #[strum(serialize = "spinix_slot")]
     Spinix,
-    #[display("dragon_gaming")]
+    #[strum(serialize = "dragon_gaming")]
     DragonGaming,
-    #[display("hacksaw")]
+    #[strum(serialize = "hacksaw")]
     Hacksaw,
 }

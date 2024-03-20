@@ -1,49 +1,49 @@
-use parse_display::Display;
+use strum_macros::{AsRefStr, EnumString};
 
-#[derive(Debug, Display)]
+#[derive(Debug, AsRefStr, EnumString)]
 pub enum OnlineCasinoProvider {
-    #[display("evoplay_online_casino")]
+    #[strum(serialize = "evoplay_online_casino")]
     Evoplay,
-    #[display("bet_games_online_casino")]
+    #[strum(serialize = "bet_games_online_casino")]
     BetGames,
-    #[display("pg_online_casino")]
+    #[strum(serialize = "pg_online_casino")]
     PG,
-    #[display("ambpoker_online_casino")]
+    #[strum(serialize = "ambpoker_online_casino")]
     AmbPoker,
-    #[display("slot_xo_online_casino")]
+    #[strum(serialize = "slot_xo_online_casino")]
     SlotXO,
-    #[display("dragoon_online_casino")]
+    #[strum(serialize = "dragoon_online_casino")]
     Dragoon,
-    #[display("jili_online_casino")]
+    #[strum(serialize = "jili_online_casino")]
     Jili,
-    #[display("mg_online_casino")]
+    #[strum(serialize = "mg_online_casino")]
     MG,
-    #[display("gaming_soft_online_casino")]
+    #[strum(serialize = "gaming_soft_online_casino")]
     GamingSoft,
-    #[display("ambslot_online_casino")]
+    #[strum(serialize = "ambslot_online_casino")]
     AmbSlot,
-    #[display("habanero_online_casino")]
+    #[strum(serialize = "habanero_online_casino")]
     Habanero,
-    #[display("astro_tech_online_casino")]
+    #[strum(serialize = "astro_tech_online_casino")]
     AstroTech,
-    #[display("iconic_gaming_online_casino")]
+    #[strum(serialize = "iconic_gaming_online_casino")]
     IconicGaming,
-    #[display("funta_online_casino")]
+    #[strum(serialize = "funta_online_casino")]
     FunTa,
-    #[display("all_way_spin_online_casino")]
+    #[strum(serialize = "all_way_spin_online_casino")]
     AllWaySpin,
-    #[display("ka_gaming_online_casino")]
+    #[strum(serialize = "ka_gaming_online_casino")]
     KaGaming,
-    #[display("kingmaker")]
+    #[strum(serialize = "kingmaker")]
     Kingmaker,
-    #[display("netent_online_casino")]
+    #[strum(serialize = "netent_online_casino")]
     Netent,
-    #[display("red_tiger_online_casino")]
+    #[strum(serialize = "red_tiger_online_casino")]
     RedTiger,
-    #[display("arcadia")]
+    #[strum(serialize = "arcadia")]
     Arcadia,
-    #[display("ninja_online_casino")]
+    #[strum(serialize = "ninja_online_casino")]
     Ninja,
-    #[display("kiss_online_casino")]
+    #[strum(serialize = "kiss_online_casino")]
     Kiss,
 }

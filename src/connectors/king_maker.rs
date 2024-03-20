@@ -4,7 +4,7 @@ use anyhow::{bail, Context};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
-use crate::types::{BetID, Url, Username};
+use crate::types::{ProviderBetID, Url, Username};
 
 #[derive(Debug)]
 pub struct Connector {
@@ -31,7 +31,7 @@ impl Connector {
     pub async fn get_round_history(
         &self,
         username: &Username,
-        round_id: &BetID,
+        round_id: &ProviderBetID,
     ) -> anyhow::Result<SuccessHistoryResponse> {
         let result: Response<SuccessHistoryResponse> = Client::new()
             .get(format!(
@@ -74,7 +74,7 @@ enum Response<T> {
     Success(T),
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct SuccessHistoryResponse {
     pub urls: Vec<Url>,
 }

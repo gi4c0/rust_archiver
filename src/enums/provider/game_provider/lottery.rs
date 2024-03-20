@@ -1,93 +1,93 @@
-use parse_display::Display;
+use strum_macros::{AsRefStr, EnumString};
 
-#[derive(Debug, Display)]
+#[derive(Debug, AsRefStr, EnumString)]
 pub enum Lottery {
-    #[display("thailotto")]
+    #[strum(serialize = "thailotto")]
     Thai,
-    #[display("laoslotto")]
+    #[strum(serialize = "laoslotto")]
     Lao,
-    #[display("hanoylotto")]
+    #[strum(serialize = "hanoylotto")]
     Hanoi,
-    #[display("hanoylottovip")]
+    #[strum(serialize = "hanoylottovip")]
     HanoiVip,
-    #[display("baaclotto")]
+    #[strum(serialize = "baaclotto")]
     Baac,
-    #[display("gsblotto")]
+    #[strum(serialize = "gsblotto")]
     Gsb,
-    #[display("pingponglotto")]
+    #[strum(serialize = "pingponglotto")]
     PingPong,
-    #[display("laoslotto_set")]
+    #[strum(serialize = "laoslotto_set")]
     LaoSet,
-    #[display("yeekeelotto")]
+    #[strum(serialize = "yeekeelotto")]
     Yeekee,
-    #[display("malaylotto")]
+    #[strum(serialize = "malaylotto")]
     Malaysian,
-    #[display("hanoylotto_set")]
+    #[strum(serialize = "hanoylotto_set")]
     HanoiSet,
-    #[display("hanoylottovip_set")]
+    #[strum(serialize = "hanoylottovip_set")]
     HanoiVipSet,
-    #[display("hanoylottospecial_set")]
+    #[strum(serialize = "hanoylottospecial_set")]
     HanoiSpecialSet,
-    #[display("malaylotto_set")]
+    #[strum(serialize = "malaylotto_set")]
     MalaySet,
-    #[display("hanoylottospecial")]
+    #[strum(serialize = "hanoylottospecial")]
     HanoiSpecial,
-    #[display("stockkorea")]
+    #[strum(serialize = "stockkorea")]
     StockKorea,
-    #[display("stockchina")]
+    #[strum(serialize = "stockchina")]
     StockChina,
-    #[display("stockdowjones")]
+    #[strum(serialize = "stockdowjones")]
     StockDowJones,
-    #[display("stockdowjonesvip")]
+    #[strum(serialize = "stockdowjonesvip")]
     StockDowJonesVip,
-    #[display("stocktaiwan")]
+    #[strum(serialize = "stocktaiwan")]
     StockTaiwan,
-    #[display("stockengland")]
+    #[strum(serialize = "stockengland")]
     StockBritish,
-    #[display("stockindia")]
+    #[strum(serialize = "stockindia")]
     StockIndia,
-    #[display("stockhangseng")]
+    #[strum(serialize = "stockhangseng")]
     StockHangSeng,
-    #[display("stockegypt")]
+    #[strum(serialize = "stockegypt")]
     StockEgyptian,
-    #[display("stocknikkei")]
+    #[strum(serialize = "stocknikkei")]
     StockNikkei,
-    #[display("stocksingapore")]
+    #[strum(serialize = "stocksingapore")]
     StockSingapore,
-    #[display("stockthai")]
+    #[strum(serialize = "stockthai")]
     StockThai,
-    #[display("stockgerman")]
+    #[strum(serialize = "stockgerman")]
     StockGerman,
-    #[display("stockrussia")]
+    #[strum(serialize = "stockrussia")]
     StockRussian,
-    #[display("stock")]
+    #[strum(serialize = "stock")]
     StockCollect,
-    #[display("zodiaclotto")]
+    #[strum(serialize = "zodiaclotto")]
     Zodiac,
-    #[display("pingponglotto2")]
+    #[strum(serialize = "pingponglotto2")]
     PingPong2,
-    #[display("pingponglotto3")]
+    #[strum(serialize = "pingponglotto3")]
     PingPong3,
-    #[display("pingponglotto6")]
+    #[strum(serialize = "pingponglotto6")]
     PingPong6,
-    #[display("hanoylottostar_set")]
+    #[strum(serialize = "hanoylottostar_set")]
     HanoiStarSet,
-    #[display("hanoylottostar")]
+    #[strum(serialize = "hanoylottostar")]
     HanoiStar,
-    #[display("hanoylottotv")]
+    #[strum(serialize = "hanoylottotv")]
     HanoiTv,
-    #[display("hanoylottotv_set")]
+    #[strum(serialize = "hanoylottotv_set")]
     HanoiTvSet,
-    #[display("laoslottoextra")]
+    #[strum(serialize = "laoslottoextra")]
     LaoExtra,
-    #[display("laoslottoextra_set")]
+    #[strum(serialize = "laoslottoextra_set")]
     LaoExtraSet,
-    #[display("laoslottohd")]
+    #[strum(serialize = "laoslottohd")]
     LaoHd,
-    #[display("laoslottohd_set")]
+    #[strum(serialize = "laoslottohd_set")]
     LaoHdSet,
-    #[display("laoslottotv")]
+    #[strum(serialize = "laoslottotv")]
     LaoTv,
-    #[display("laoslottotv_set")]
+    #[strum(serialize = "laoslottotv_set")]
     LaoTvSet,
 }

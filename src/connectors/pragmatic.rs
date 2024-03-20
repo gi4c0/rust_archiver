@@ -8,6 +8,7 @@ use serde_repr::Deserialize_repr;
 use crate::{
     archiver::bets::loader::Bet,
     enums::Language,
+    helpers::crypto,
     types::{ProviderBetID, ProviderGameVendorID, Url, UserID},
 };
 
@@ -45,16 +46,11 @@ impl Connector {
             hash: None,
         };
 
-        let mut hasher = Md5::new();
-
-        hasher.update(format!(
+        payload.hash = Some(crypto::md5(format!(
             "{}{}",
             serde_urlencoded::to_string(&payload).unwrap(),
             self.config.secret_key
-        ));
-
-        let hash = hex::encode(hasher.finalize());
-        payload.hash = Some(hash);
+        )));
 
         let response: BetRoundHistoryResponse = reqwest::Client::new()
             .post(format!("{}/OpenHistoryExtended/", self.config.api_url))

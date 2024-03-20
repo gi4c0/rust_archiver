@@ -1,4 +1,5 @@
 use anyhow::Context;
+use serde::{Deserialize, Serialize};
 use sqlx::{prelude::FromRow, PgPool, Transaction};
 use time::{Date, Duration, OffsetDateTime};
 
@@ -6,7 +7,8 @@ use crate::{
     enums::{bet::BetStatus, PositionEnum},
     helpers::get_hong_kong_11_hours_from_date,
     types::{
-        AmountByPosition, BetID, Currency, ProviderBetID, ProviderGameVendorID, UserID, Username,
+        AmountByPosition, BetID, Currency, ProviderBetID, ProviderGameVendorID, Url, UserID,
+        Username,
     },
 };
 
@@ -86,13 +88,20 @@ pub struct Bet {
     pub commission_percent: AmountByPosition,
     pub commission_amount: AmountByPosition,
     pub funds_delta: AmountByPosition,
-    pub details: String,
+    pub details: Option<String>,
     pub replay: String,
     pub transaction_ids: Vec<String>,
     pub transactions: Vec<String>,
     pub provider_bet_id: ProviderBetID,
     pub provider_game_vendor_id: ProviderGameVendorID,
     pub provider_game_vendor_label: String,
+}
+
+#[derive(Debug)]
+pub struct BetDetails {
+    pub id: BetID,
+    pub details: Option<String>,
+    pub replay: Option<Url>,
 }
 
 #[derive(Debug, Clone)]

@@ -13,7 +13,7 @@ impl Connector {
     pub async fn get_transaction_history_result(
         &self,
         username: &Username,
-        provider_bet_id: ProviderBetID,
+        provider_bet_id: &ProviderBetID,
     ) -> anyhow::Result<Url> {
         let payload = GetHistoryResultPayload {
             platform: "SEXYBCRT".to_string(),

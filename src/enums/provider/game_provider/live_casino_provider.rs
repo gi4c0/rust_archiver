@@ -1,31 +1,31 @@
-use parse_display::Display;
+use strum_macros::{AsRefStr, EnumString};
 
-#[derive(Display, Debug)]
+#[derive(AsRefStr, Debug, EnumString)]
 pub enum LiveCasinoProvider {
-    #[display("sexy")]
+    #[strum(serialize = "sexy")]
     Sexy,
-    #[display("pragmatic")]
+    #[strum(serialize = "pragmatic")]
     Pragmatic,
-    #[display("sa")]
+    #[strum(serialize = "sa")]
     SA,
-    #[display("ag")]
+    #[strum(serialize = "ag")]
     AG,
-    #[display("pretty")]
+    #[strum(serialize = "pretty")]
     Pretty,
-    #[display("dream")]
+    #[strum(serialize = "dream")]
     Dream,
-    #[display("allbet")]
+    #[strum(serialize = "allbet")]
     AllBet,
-    #[display("xtream")]
+    #[strum(serialize = "xtream")]
     Xtream,
-    #[display("bet_games_live_casino")]
+    #[strum(serialize = "bet_games_live_casino")]
     BetGames,
-    #[display("big_gaming_live_casino")]
+    #[strum(serialize = "big_gaming_live_casino")]
     BigGaming,
-    #[display("mg_live_casino")]
+    #[strum(serialize = "mg_live_casino")]
     MG,
-    #[display("green_dragon")]
+    #[strum(serialize = "green_dragon")]
     GreenDragon,
-    #[display("wm_live_casino")]
+    #[strum(serialize = "wm_live_casino")]
     WM,
 }

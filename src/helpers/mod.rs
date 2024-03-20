@@ -6,6 +6,7 @@ mod time;
 use std::collections::HashMap;
 
 use ::time::Date;
+use sqlx::{MySqlPool, PgPool};
 pub use time::*;
 
 use crate::{
@@ -21,16 +22,20 @@ pub struct State {
     pub upline: HashMap<UserID, Vec<User>>,
     pub wl_by_date_by_user: HashMap<Date, HashMap<UserID, i64>>,
     pub connectors: Connectors,
+    pub pg: PgPool,
+    pub mysql: MySqlPool,
 }
 
 impl State {
-    pub fn new(connectors: Connectors) -> Self {
+    pub fn new(connectors: Connectors, pg: PgPool, mysql: MySqlPool) -> Self {
         Self {
             connectors,
             credit_players: HashMap::new(),
             username_by_user_id: HashMap::new(),
             upline: HashMap::new(),
             wl_by_date_by_user: HashMap::new(),
+            pg,
+            mysql,
         }
     }
 

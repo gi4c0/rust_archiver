@@ -1,3 +1,4 @@
+use derive_more::AsRef;
 use parse_display::Display;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
@@ -7,7 +8,9 @@ use std::hash::Hash;
 #[sqlx(transparent)]
 pub struct BetID(pub String);
 
-#[derive(PartialEq, Eq, Clone, Debug, FromRow, sqlx::Type, Deserialize, Serialize, Display)]
+#[derive(
+    PartialEq, Eq, Clone, Debug, FromRow, sqlx::Type, Deserialize, Serialize, Display, AsRef,
+)]
 #[sqlx(transparent)]
 pub struct ProviderBetID(pub String);
 

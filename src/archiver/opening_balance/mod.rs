@@ -19,11 +19,8 @@ use self::loader::{
     insert_opening_balance_records, OpeningBalance,
 };
 
-pub async fn create_opening_balance_records(
-    pg_pool: &PgPool,
-    state: &mut State,
-) -> anyhow::Result<()> {
-    let last_opening_balance_date = find_last_opening_balance_record(pg_pool).await?;
+pub async fn create_opening_balance_records(state: &mut State) -> anyhow::Result<()> {
+    let last_opening_balance_date = find_last_opening_balance_record(&state.pg).await?;
     let tomorrow = OffsetDateTime::now_utc().date() + Duration::days(1);
 
     if last_opening_balance_date >= tomorrow {
@@ -35,7 +32,7 @@ pub async fn create_opening_balance_records(
     let mut players_offset: i64 = 0;
 
     loop {
-        let players_chunk = get_player_chunk(pg_pool, limit, players_offset).await?;
+        let players_chunk = get_player_chunk(&state.pg, limit, players_offset).await?;
 
         let mut user_ids = vec![];
         let players_chunk_len = players_chunk.len();
@@ -49,7 +46,7 @@ pub async fn create_opening_balance_records(
         }
 
         let opening_balance_records =
-            get_opening_balance_records(pg_pool, last_opening_balance_date, user_ids).await?;
+            get_opening_balance_records(&state.pg, last_opening_balance_date, user_ids).await?;
 
         let mut new_opening_balance_date = last_opening_balance_date;
 
@@ -65,7 +62,7 @@ pub async fn create_opening_balance_records(
                 .collect();
 
             insert_opening_balance_records(
-                pg_pool,
+                &state.pg,
                 opening_balance_records,
                 new_opening_balance_date,
             )

@@ -1,4 +1,5 @@
 use base64::{engine::general_purpose, Engine};
+use md5::{Digest, Md5};
 use openssl::symm::{Cipher, Crypter, Mode};
 use std::str;
 
@@ -40,4 +41,10 @@ pub fn des_cbc_decrypt(target: &str, key: &str, iv: &str) -> anyhow::Result<Stri
     decrypted_data.truncate(len);
 
     Ok(String::from_utf8(decrypted_data)?)
+}
+
+pub fn md5(data: String) -> String {
+    let mut hasher = Md5::new();
+    hasher.update(data);
+    hex::encode(hasher.finalize())
 }

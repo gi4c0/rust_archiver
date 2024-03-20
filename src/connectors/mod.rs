@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, str::FromStr};
 
 use anyhow::{anyhow, Context, Result};
 use sqlx::PgPool;
@@ -12,6 +12,7 @@ use self::royal_slot_gaming::RoyalSlotGamingGameConfig;
 pub mod ae;
 pub mod ameba;
 pub mod arcadia;
+pub mod dot_connections;
 pub mod king_maker;
 pub mod pragmatic;
 pub mod royal_slot_gaming;
@@ -24,6 +25,7 @@ pub struct Connectors {
     pub king_maker: king_maker::Connector,
     pub pragmatic: pragmatic::Connector,
     pub royal_slot_gaming: royal_slot_gaming::Connector,
+    pub dot_connections: dot_connections::Connector,
 }
 
 pub async fn load_connectors(pg_pool: &PgPool) -> Result<Connectors> {
@@ -35,6 +37,7 @@ pub async fn load_connectors(pg_pool: &PgPool) -> Result<Connectors> {
     let mut king_maker_config: Option<king_maker::KingMakerConfig> = None;
     let mut pragmatic_config: Option<pragmatic::PragmaticConfig> = None;
     let mut royal_slot_config: Option<royal_slot_gaming::RoyalSlotGamingConfig> = None;
+    let mut dot_connections_config: Option<dot_connections::DotConnectionsConfig> = None;
 
     for config in configs {
         match config.game_provider {
@@ -45,33 +48,43 @@ pub async fn load_connectors(pg_pool: &PgPool) -> Result<Connectors> {
             }
             GameProvider::Slot(SlotProvider::Ameba) => {
                 ameba_config = Some(
-                    serde_json::from_str(&config.config).context("Failed to parse Sexy config")?,
+                    serde_json::from_str(&config.config).context("Failed to parse Ameba config")?,
                 );
             }
             GameProvider::OnlineCasino(OnlineCasinoProvider::Arcadia) => {
                 arcadia_config = Some(
-                    serde_json::from_str(&config.config).context("Failed to parse Sexy config")?,
+                    serde_json::from_str(&config.config)
+                        .context("Failed to parse Arcadia config")?,
                 );
             }
             GameProvider::OnlineCasino(OnlineCasinoProvider::Kingmaker) => {
                 king_maker_config = Some(
-                    serde_json::from_str(&config.config).context("Failed to parse Sexy config")?,
+                    serde_json::from_str(&config.config)
+                        .context("Failed to parse Kingmaker config")?,
                 );
             }
             GameProvider::LiveCasino(LiveCasinoProvider::Pragmatic) => {
                 pragmatic_config = Some(
-                    serde_json::from_str(&config.config).context("Failed to parse Sexy config")?,
+                    serde_json::from_str(&config.config)
+                        .context("Failed to parse Pragmatic config")?,
                 );
             }
             GameProvider::Slot(SlotProvider::RoyalSlotGaming) => {
                 royal_slot_config = Some(
-                    serde_json::from_str(&config.config).context("Failed to parse Sexy config")?,
+                    serde_json::from_str(&config.config)
+                        .context("Failed to parse RoyalSlotGaming config")?,
+                );
+            }
+            GameProvider::Slot(SlotProvider::Relax) => {
+                dot_connections_config = Some(
+                    serde_json::from_str(&config.config)
+                        .context("Failed to parse DotConnections config")?,
                 );
             }
             _ => {
                 return Err(anyhow!(
                     "Loaded invalid provider config: '{}'",
-                    config.game_provider
+                    config.game_provider.as_ref()
                 ))
             }
         }
@@ -85,6 +98,9 @@ pub async fn load_connectors(pg_pool: &PgPool) -> Result<Connectors> {
     }
 
     Ok(Connectors {
+        dot_connections: dot_connections::Connector::new(
+            dot_connections_config.context("dot_connections config not found")?,
+        ),
         ae: ae::Connector::new(sexy_config.context("sexy config not found")?),
         ameba: ameba::Connector::new(ameba_config.context("ameba config not found")?),
         arcadia: arcadia::Connector::new(arcadia_config.context("arcadia config not found")?),
@@ -124,7 +140,8 @@ async fn get_provider_configs(pg_pool: &PgPool) -> Result<Vec<ProviderConfig>> {
                 'ameba',
                 'king_maker',
                 'pragmatic',
-                'royal_slot_gaming'
+                'royal_slot_gaming',
+                'relax'
             )
         "#
     )
@@ -137,7 +154,7 @@ async fn get_provider_configs(pg_pool: &PgPool) -> Result<Vec<ProviderConfig>> {
     for item in db_data {
         result.push(ProviderConfig {
             config: item.config,
-            game_provider: item.game_provider.try_into()?,
+            game_provider: GameProvider::from_str(&item.game_provider)?,
         });
     }
 
@@ -153,7 +170,7 @@ async fn load_royal_slot_game_configs(pg_pool: &PgPool) -> Result<Vec<RoyalSlotG
             JOIN public.provider_game pg ON pc.game_id = pg.id
             WHERE pg.provider = $1
         "#,
-        SlotProvider::RoyalSlotGaming.to_string()
+        SlotProvider::RoyalSlotGaming.as_ref()
     )
     .fetch_all(pg_pool)
     .await

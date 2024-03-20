@@ -1,15 +1,16 @@
 use std::collections::HashMap;
 
+use serde_json::{json, to_string};
 use sqlx::Transaction;
 use time::{macros::time, Date, Duration, OffsetDateTime};
 
 use crate::{
-    enums::provider::GameProvider,
+    enums::provider::{GameProvider, LiveCasinoProvider, OnlineCasinoProvider, SlotProvider},
     helpers::State,
     types::{BetID, Currency, UserID},
 };
 
-use self::loader::{get_upline, Bet};
+use self::loader::{get_upline, Bet, BetDetails};
 
 pub mod loader;
 
@@ -23,6 +24,7 @@ type DebtsByDate = HashMap<Date, HashMap<UserID, CurrencyAmount>>;
 type WlByDateByUser = HashMap<Date, HashMap<UserID, i64>>;
 
 pub async fn handle_bet_chunk(
+    provider: GameProvider,
     bets: Vec<Bet>,
     state: &mut State,
     transaction: &mut Transaction<'_, sqlx::Postgres>,
@@ -30,6 +32,7 @@ pub async fn handle_bet_chunk(
     let mut bet_ids: Vec<BetID> = vec![];
     let mut debts: DebtsByDate = HashMap::new();
     let mut wl_by_date_by_user: WlByDateByUser = HashMap::new();
+    let mut bet_details = vec![];
 
     for bet in bets {
         bet_ids.push(bet.id.clone());
@@ -57,12 +60,17 @@ pub async fn handle_bet_chunk(
             let existing_debts = debts.entry(figures_date).or_insert_with(HashMap::new);
             calculate_debt_by_bet(&bet, existing_debts, state);
         }
+
+        if let Some(detail) = extend_bet_with_details(state, &bet, &provider).await {
+            bet_details.push(detail);
+        }
     }
 
     Ok(())
 }
 
 async fn save_all(
+    state: &mut State,
     provider_or_bet_type: GameProvider,
     depts: DebtsByDate,
     bet_ids: Vec<BetID>,
@@ -108,4 +116,106 @@ fn get_figures_date(bet_date: OffsetDateTime) -> Date {
     }
 
     threshold.date()
+}
+
+async fn extend_bet_with_details(
+    state: &mut State,
+    bet: &Bet,
+    provider: &GameProvider,
+) -> Option<BetDetails> {
+    match provider {
+        GameProvider::LiveCasino(LiveCasinoProvider::Sexy) => state
+            .connectors
+            .ae
+            .get_transaction_history_result(&bet.username, &bet.provider_bet_id)
+            .await
+            .ok()
+            .map(|url| BetDetails {
+                id: bet.id.clone(),
+                details: None,
+                replay: Some(url),
+            }),
+
+        GameProvider::LiveCasino(LiveCasinoProvider::Pragmatic)
+        | GameProvider::Slot(SlotProvider::Pragmatic) => {
+            if bet.details.is_none() {
+                return state
+                    .connectors
+                    .pragmatic
+                    .get_bet_round_history(&bet)
+                    .await
+                    .ok()
+                    .map(|url| BetDetails {
+                        id: bet.id.clone(),
+                        details: Some(json!({ "result": url }).to_string()),
+                        replay: None,
+                    });
+            };
+
+            None
+        }
+
+        GameProvider::Slot(SlotProvider::RoyalSlotGaming) => state
+            .connectors
+            .royal_slot_gaming
+            .get_game_round_history(&bet, None)
+            .await
+            .ok()
+            .map(|url| BetDetails {
+                id: bet.id.clone(),
+                details: Some(json!({ "result": url }).to_string()),
+                replay: None,
+            }),
+
+        GameProvider::Slot(SlotProvider::Ameba) => state
+            .connectors
+            .ameba
+            .get_round_history(&bet.username, &bet.provider_bet_id)
+            .await
+            .ok()
+            .map(|url| BetDetails {
+                id: bet.id.clone(),
+                details: Some(json!({ "result": url }).to_string()),
+                replay: None,
+            }),
+
+        GameProvider::OnlineCasino(OnlineCasinoProvider::Arcadia) => state
+            .connectors
+            .arcadia
+            .get_bet_history(&bet.provider_bet_id)
+            .await
+            .ok()
+            .map(|url| BetDetails {
+                id: bet.id.clone(),
+                details: Some(json!({ "result": url }).to_string()),
+                replay: None,
+            }),
+
+        GameProvider::OnlineCasino(OnlineCasinoProvider::Kingmaker) => state
+            .connectors
+            .king_maker
+            .get_round_history(&bet.username, &bet.provider_bet_id)
+            .await
+            .ok()
+            .map(|url| BetDetails {
+                id: bet.id.clone(),
+                details: Some(json!({ "result": url }).to_string()),
+                replay: None,
+            }),
+
+        GameProvider::Slot(SlotProvider::Relax)
+        | GameProvider::Slot(SlotProvider::YGG)
+        | GameProvider::Slot(SlotProvider::Hacksaw) => state
+            .connectors
+            .dot_connections
+            .get_bet_history(&bet)
+            .await
+            .ok()
+            .map(|url| BetDetails {
+                id: bet.id.clone(),
+                details: Some(json!({ "result": url }).to_string()),
+                replay: None,
+            }),
+        _ => None,
+    }
 }
