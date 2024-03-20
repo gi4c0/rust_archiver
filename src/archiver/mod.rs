@@ -3,7 +3,11 @@ pub mod opening_balance;
 
 use sqlx::{MySqlPool, PgPool};
 
-use crate::{db::tables::BET_TABLES, helpers::State};
+use crate::{
+    configuration, connectors,
+    db::{self, tables::BET_TABLES},
+    helpers::{logger::log_error, State},
+};
 
 use self::bets::loader::get_target_data_bench;
 
@@ -21,4 +25,20 @@ pub async fn run(pg: &PgPool, _mysql: &MySqlPool, state: &mut State) -> anyhow::
     }
 
     Ok(())
+}
+
+pub async fn launch() {
+    dotenvy::dotenv().expect("Failed to parse .env");
+
+    let config = configuration::parse_config();
+
+    let pg = db::create_pg_connection(&config.pg).await;
+    let mysql = db::create_mysql_connection(&config.mysql).await;
+
+    let connectors = connectors::load_connectors(&pg).await.unwrap();
+    let mut state = State::new(connectors);
+
+    if let Err(e) = run(&pg, &mysql, &mut state).await {
+        log_error(&pg, e).await.unwrap();
+    }
 }

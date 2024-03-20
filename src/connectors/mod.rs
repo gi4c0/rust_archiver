@@ -1,9 +1,11 @@
 use std::collections::HashMap;
 
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use sqlx::PgPool;
 
-use crate::enums::provider::GameProvider;
+use crate::enums::provider::{
+    GameProvider, LiveCasinoProvider, OnlineCasinoProvider, SlotProvider,
+};
 
 use self::royal_slot_gaming::RoyalSlotGamingGameConfig;
 
@@ -36,35 +38,41 @@ pub async fn load_connectors(pg_pool: &PgPool) -> Result<Connectors> {
 
     for config in configs {
         match config.game_provider {
-            GameProvider::Sexy => {
+            GameProvider::LiveCasino(LiveCasinoProvider::Sexy) => {
                 sexy_config = Some(
                     serde_json::from_str(&config.config).context("Failed to parse Sexy config")?,
                 );
             }
-            GameProvider::Ameba => {
+            GameProvider::Slot(SlotProvider::Ameba) => {
                 ameba_config = Some(
                     serde_json::from_str(&config.config).context("Failed to parse Sexy config")?,
                 );
             }
-            GameProvider::Arcadia => {
+            GameProvider::OnlineCasino(OnlineCasinoProvider::Arcadia) => {
                 arcadia_config = Some(
                     serde_json::from_str(&config.config).context("Failed to parse Sexy config")?,
                 );
             }
-            GameProvider::KingMaker => {
+            GameProvider::OnlineCasino(OnlineCasinoProvider::Kingmaker) => {
                 king_maker_config = Some(
                     serde_json::from_str(&config.config).context("Failed to parse Sexy config")?,
                 );
             }
-            GameProvider::Pragmatic => {
+            GameProvider::LiveCasino(LiveCasinoProvider::Pragmatic) => {
                 pragmatic_config = Some(
                     serde_json::from_str(&config.config).context("Failed to parse Sexy config")?,
                 );
             }
-            GameProvider::RoyalSlotGaming => {
+            GameProvider::Slot(SlotProvider::RoyalSlotGaming) => {
                 royal_slot_config = Some(
                     serde_json::from_str(&config.config).context("Failed to parse Sexy config")?,
                 );
+            }
+            _ => {
+                return Err(anyhow!(
+                    "Loaded invalid provider config: '{}'",
+                    config.game_provider
+                ))
             }
         }
     }
@@ -145,7 +153,7 @@ async fn load_royal_slot_game_configs(pg_pool: &PgPool) -> Result<Vec<RoyalSlotG
             JOIN public.provider_game pg ON pc.game_id = pg.id
             WHERE pg.provider = $1
         "#,
-        GameProvider::RoyalSlotGaming.to_string()
+        SlotProvider::RoyalSlotGaming.to_string()
     )
     .fetch_all(pg_pool)
     .await

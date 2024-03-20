@@ -4,6 +4,7 @@ use sqlx::Transaction;
 use time::{macros::time, Date, Duration, OffsetDateTime};
 
 use crate::{
+    enums::provider::GameProvider,
     helpers::State,
     types::{BetID, Currency, UserID},
 };
@@ -18,14 +19,17 @@ struct CurrencyAmount {
     amount: i64,
 }
 
+type DebtsByDate = HashMap<Date, HashMap<UserID, CurrencyAmount>>;
+type WlByDateByUser = HashMap<Date, HashMap<UserID, i64>>;
+
 pub async fn handle_bet_chunk(
     bets: Vec<Bet>,
     state: &mut State,
     transaction: &mut Transaction<'_, sqlx::Postgres>,
 ) -> anyhow::Result<()> {
     let mut bet_ids: Vec<BetID> = vec![];
-    let mut debts: HashMap<Date, HashMap<UserID, CurrencyAmount>> = HashMap::new();
-    let mut wl_by_date_by_user: HashMap<Date, HashMap<UserID, i64>> = HashMap::new();
+    let mut debts: DebtsByDate = HashMap::new();
+    let mut wl_by_date_by_user: WlByDateByUser = HashMap::new();
 
     for bet in bets {
         bet_ids.push(bet.id.clone());
@@ -56,6 +60,14 @@ pub async fn handle_bet_chunk(
     }
 
     Ok(())
+}
+
+async fn save_all(
+    provider_or_bet_type: GameProvider,
+    depts: DebtsByDate,
+    bet_ids: Vec<BetID>,
+    wl_by_date_by_user: WlByDateByUser,
+) {
 }
 
 fn calculate_debt_by_bet(
