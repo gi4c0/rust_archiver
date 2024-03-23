@@ -2,10 +2,10 @@ use std::collections::HashSet;
 
 use lib::{
     archiver::opening_balance::loader::{insert_opening_balance_records, OpeningBalance},
-    helpers::{get_hong_kong_11_hours_from_date, query_helper::get_archive_schema_name},
+    helpers::{add_month, get_hong_kong_11_hours_from_date, query_helper::get_archive_schema_name},
 };
 use sqlx::PgPool;
-use time::{Date, Duration, Month, OffsetDateTime};
+use time::{Date, Duration, OffsetDateTime};
 use uuid::Uuid;
 
 use super::{
@@ -76,14 +76,5 @@ async fn create_archive_tables_for_test(pg_pool: &PgPool, initial_date: Date) {
 
     for table_date in tables {
         create_opening_balance_table(pg_pool, table_date).await;
-    }
-}
-
-fn add_month(date: Date) -> Date {
-    match date.month() {
-        Month::December => {
-            Date::from_calendar_date(date.year() + 1, date.month().next(), 1).unwrap()
-        }
-        _ => date.replace_month(date.month().next()).unwrap(),
     }
 }

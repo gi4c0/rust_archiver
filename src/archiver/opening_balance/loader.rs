@@ -1,5 +1,7 @@
-use anyhow::Context;
-use sqlx::{Execute, PgPool, Postgres, QueryBuilder, Row};
+use std::collections::HashMap;
+
+use anyhow::{Context, Result};
+use sqlx::{Execute, PgPool, Postgres, QueryBuilder, Row, Transaction};
 use time::{Date, OffsetDateTime};
 use uuid::Uuid;
 
@@ -100,10 +102,15 @@ pub async fn insert_opening_balance_records(
         query.sql()
     );
 
-    sqlx::query_with(&sql, query.take_arguments().unwrap())
-        .execute(pool)
-        .await
-        .context("Failed to insert opening balance records")?;
+    sqlx::query_with(
+        &sql,
+        query
+            .take_arguments()
+            .context("Failed to take arguments for insert opening balance")?,
+    )
+    .execute(pool)
+    .await
+    .context("Failed to insert opening balance records")?;
 
     Ok(())
 }
@@ -143,4 +150,48 @@ pub async fn get_opening_balance_records(
     .context("Failed to fetch opening balance records")?;
 
     Ok(result)
+}
+
+pub async fn update_opening_balance_amount(
+    pg_conn: &mut Transaction<'_, Postgres>,
+    schema: String,
+    table_name: String,
+    date: Date,
+    update_map: &HashMap<UserID, i64>,
+) -> Result<()> {
+    let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(format!(
+        r#"
+            UPDATE {schema}.{table_name} AS ob SET
+            amount = ob.amount + c.amount
+            FROM (
+        "#
+    ));
+
+    query_builder.push_values(update_map.into_iter(), |mut b, (user_id, amount)| {
+        b.push_bind(user_id).push_bind(amount);
+    });
+
+    query_builder.push(
+        r#"
+            ) AS c(user_id, amount)
+            WHERE c.user_id = ob.user_id
+            AND ob.creation_date >=
+        "#,
+    );
+
+    query_builder.push_bind(get_hong_kong_11_hours_from_date(date));
+
+    let mut query = query_builder.build();
+
+    sqlx::query_with(
+        query.sql(),
+        query
+            .take_arguments()
+            .context("Failed to take arguments in update_opening_balance_amount")?,
+    )
+    .execute(&mut **pg_conn)
+    .await
+    .context("Failed to update opening amount")?;
+
+    Ok(())
 }

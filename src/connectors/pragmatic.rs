@@ -1,7 +1,6 @@
 use std::net::Ipv4Addr;
 
 use anyhow::Context;
-use md5::{Digest, Md5};
 use serde::{Deserialize, Serialize};
 use serde_repr::Deserialize_repr;
 

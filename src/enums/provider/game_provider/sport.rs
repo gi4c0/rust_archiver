@@ -1,6 +1,8 @@
-use strum_macros::{AsRefStr, EnumString};
+use strum_macros::{AsRefStr, EnumString, VariantArray};
 
-#[derive(Debug, AsRefStr, EnumString)]
+use super::GameProvider;
+
+#[derive(AsRefStr, Debug, EnumString, VariantArray, Clone)]
 pub enum Sportsbook {
     #[strum(serialize = "single_live")]
     SingleLive,
@@ -10,4 +12,10 @@ pub enum Sportsbook {
     Combo,
     #[strum(serialize = "parlay")]
     Parlay,
+}
+
+impl Sportsbook {
+    pub fn into_game_provider(self) -> GameProvider {
+        GameProvider::Sport(self)
+    }
 }

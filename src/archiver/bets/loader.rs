@@ -1,11 +1,15 @@
-use anyhow::Context;
-use serde::{Deserialize, Serialize};
-use sqlx::{prelude::FromRow, PgPool, Transaction};
+use anyhow::{Context, Result};
+use sqlx::{prelude::FromRow, Execute, PgPool, Postgres, QueryBuilder, Transaction};
 use time::{Date, Duration, OffsetDateTime};
+use uuid::Uuid;
 
 use crate::{
-    enums::{bet::BetStatus, PositionEnum},
-    helpers::get_hong_kong_11_hours_from_date,
+    db::tables::CREDIT_DEBT_TABLE_NAME,
+    enums::{bet::BetStatus, provider::GameProvider, PositionEnum},
+    helpers::{
+        get_hong_kong_11_hours_from_date,
+        query_helper::{get_archive_schema_name, get_bet_table_name, get_dynamic_table_name},
+    },
     types::{
         AmountByPosition, BetID, Currency, ProviderBetID, ProviderGameVendorID, Url, UserID,
         Username,
@@ -134,4 +138,100 @@ pub async fn get_upline(
     .fetch_all(&mut **transaction)
     .await
     .context("Failed to fetch upline")
+}
+
+pub struct CreditDebt {
+    pub id: Uuid,
+    pub user_id: UserID,
+    pub currency: Currency,
+    pub date: OffsetDateTime,
+    pub username: Username,
+    pub debt_amount: i64,
+}
+
+pub async fn save_debts(
+    pg_transaction: &mut Transaction<'_, Postgres>,
+    debts: Vec<CreditDebt>,
+    date: Date,
+) -> Result<()> {
+    let db_schema = get_archive_schema_name(date);
+    let table_name = get_dynamic_table_name(CREDIT_DEBT_TABLE_NAME, date);
+
+    let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(&format!(
+        r#"
+            INSERT INTO {db_schema}.{table_name} AS t(
+                id,
+                user_id,
+                date,
+                username,
+                debt_amount,
+                currency
+            )
+        "#
+    ));
+
+    query_builder.push_values(debts.into_iter(), |mut b, r| {
+        b.push_bind(r.id)
+            .push_bind(r.user_id)
+            .push_bind(r.date)
+            .push_bind(r.username)
+            .push_bind(r.debt_amount)
+            .push_bind(r.currency);
+    });
+
+    let mut query = query_builder.build();
+
+    let sql = format!(
+        r#"
+            {}
+            ON CONFLICT (user_id, date)
+            DO UPDATE SET debt_amount = t.debt_amount + EXCLUDED.debt_amount
+        "#,
+        query.sql()
+    );
+
+    sqlx::query_with(
+        &sql,
+        query
+            .take_arguments()
+            .context("Failed to take arguments for save_debts query")?,
+    )
+    .execute(&mut **pg_transaction)
+    .await
+    .context("Failed to save debts")?;
+
+    Ok(())
+}
+
+pub async fn delete_bets_by_ids(
+    bet_ids: Vec<BetID>,
+    provider: &GameProvider,
+    transaction: &mut Transaction<'_, sqlx::Postgres>,
+) -> Result<()> {
+    let table_name = get_bet_table_name(&provider);
+
+    let mut query_builder: QueryBuilder<Postgres> =
+        QueryBuilder::new(format!("DELETE FROM public.{table_name} WHERE id IN ("));
+
+    let mut separated = query_builder.separated(",");
+
+    for id in bet_ids.iter() {
+        separated.push_bind(id.as_ref());
+    }
+
+    separated.push_unseparated(")");
+
+    let mut query = query_builder.build();
+
+    sqlx::query_with(
+        query.sql(),
+        query
+            .take_arguments()
+            .context("Failed to take arguments for delete_bets_by_ids query")?,
+    )
+    .execute(&mut **transaction)
+    .await
+    .context("Failed to delete list of bets")?;
+
+    Ok(())
 }

@@ -1,8 +1,9 @@
 use std::{collections::HashMap, net::Ipv4Addr};
 
-use anyhow::{bail, Context};
-use reqwest::Client;
+use anyhow::{bail, Context, Result};
+use reqwest::{header::HeaderMap, Client};
 use serde::{Deserialize, Serialize};
+use time::OffsetDateTime;
 
 use crate::{
     archiver::bets::loader::Bet,
@@ -98,6 +99,7 @@ impl Connector {
                 "{}/Player/GetGameMinDetailURLTokenBySeq",
                 &self.config.api_url
             ))
+            .headers(self.generate_headers(&hash)?)
             .body(format!("Msg={hash}"))
             .send()
             .await
@@ -140,6 +142,41 @@ impl Connector {
             Some(data) => Ok(data.url),
             _ => bail!("RoyalSlotGaming bet details API Error: '{}'", &decrypted),
         }
+    }
+
+    fn generate_headers(&self, des: &str) -> Result<HeaderMap> {
+        let mut headers = HeaderMap::new();
+        let unix_timestamp = OffsetDateTime::now_utc().unix_timestamp();
+
+        headers.insert(
+            "X-API-ClientID",
+            self.config
+                .client_id
+                .parse()
+                .context("[RSG] Failed to convert client_id to header value")?,
+        );
+
+        headers.insert(
+            "X-API-Timestamp",
+            unix_timestamp
+                .to_string()
+                .parse()
+                .context("[RSG] Failed to convert unix_timestamp to header value")?,
+        );
+
+        let signature = crypto::md5(format!(
+            "{}{}{}{}",
+            &self.config.client_id, &self.config.client_secret, unix_timestamp, des
+        ));
+
+        headers.insert(
+            "X-API-Signature",
+            signature
+                .parse()
+                .context("[RSG] Failed to convert signature to header value")?,
+        );
+
+        Ok(headers)
     }
 }
 

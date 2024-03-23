@@ -22,3 +22,7 @@ pub fn get_double_digit_month(date: Date) -> String {
 
     format!("0{month}")
 }
+
+pub fn get_bet_table_name(provider: &impl AsRef<str>) -> String {
+    format!("bet_{}", provider.as_ref())
+}

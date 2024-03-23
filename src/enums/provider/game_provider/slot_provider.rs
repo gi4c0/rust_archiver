@@ -1,6 +1,8 @@
-use strum_macros::{AsRefStr, EnumString};
+use strum_macros::{AsRefStr, EnumString, VariantArray};
 
-#[derive(Debug, AsRefStr, EnumString)]
+use super::GameProvider;
+
+#[derive(AsRefStr, Debug, EnumString, VariantArray, Clone)]
 pub enum SlotProvider {
     #[strum(serialize = "slot_xo_slot")]
     SlotXO,
@@ -80,4 +82,10 @@ pub enum SlotProvider {
     DragonGaming,
     #[strum(serialize = "hacksaw")]
     Hacksaw,
+}
+
+impl SlotProvider {
+    pub fn into_game_provider(self) -> GameProvider {
+        GameProvider::Slot(self)
+    }
 }

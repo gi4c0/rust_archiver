@@ -1,27 +1,64 @@
 pub mod bets;
 pub mod opening_balance;
 
-use sqlx::{MySqlPool, PgPool};
+use anyhow::Context;
+use strum::VariantArray;
 
 use crate::{
-    configuration, connectors,
-    db::{self, tables::BET_TABLES},
-    helpers::{logger::log_error, State},
+    configuration, connectors, db,
+    enums::provider::{
+        GameProvider, LiveCasinoProvider, Lottery, OnlineCasinoProvider, SlotProvider, Sportsbook,
+    },
+    helpers::{logger::log_error, query_helper::get_bet_table_name, State},
 };
 
-use self::bets::loader::get_target_data_bench;
+use self::bets::{handle_bet_chunk, loader::get_target_data_bench};
 
 pub async fn run(state: &mut State) -> anyhow::Result<()> {
     opening_balance::create_opening_balance_records(state).await?;
 
-    'provider_bet_for: for table_name in BET_TABLES {
-        let bet_chunk = get_target_data_bench(&state.pg, table_name, None).await?;
+    let providers: Vec<GameProvider> = [
+        LiveCasinoProvider::VARIANTS
+            .into_iter()
+            .map(|p| p.clone().into_game_provider())
+            .collect(),
+        OnlineCasinoProvider::VARIANTS
+            .into_iter()
+            .map(|p| p.clone().into_game_provider())
+            .collect(),
+        SlotProvider::VARIANTS
+            .into_iter()
+            .map(|p| p.clone().into_game_provider())
+            .collect(),
+        Lottery::VARIANTS
+            .into_iter()
+            .map(|p| p.clone().into_game_provider())
+            .collect(),
+        Sportsbook::VARIANTS
+            .into_iter()
+            .map(|p| p.clone().into_game_provider())
+            .collect::<Vec<GameProvider>>(),
+    ]
+    .concat();
 
-        if bet_chunk.len() == 0 {
-            continue 'provider_bet_for;
+    'provider_bet_for: for provider in providers {
+        let runtime_table_name = get_bet_table_name(&provider);
+
+        loop {
+            let bet_chunk = get_target_data_bench(&state.pg, &runtime_table_name, None).await?;
+
+            if bet_chunk.len() == 0 {
+                continue 'provider_bet_for;
+            }
+
+            let mut pg_transaction = state
+                .pg
+                .begin()
+                .await
+                .context("Failed to start PG transaction")?;
+
+            handle_bet_chunk(&provider, bet_chunk, state, &mut pg_transaction).await?;
         }
-
-        loop {}
     }
 
     Ok(())

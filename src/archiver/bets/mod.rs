@@ -1,16 +1,25 @@
 use std::collections::HashMap;
 
-use serde_json::{json, to_string};
+use anyhow::{anyhow, Result};
+use serde_json::json;
 use sqlx::Transaction;
 use time::{macros::time, Date, Duration, OffsetDateTime};
+use uuid::Uuid;
 
 use crate::{
+    db::tables::OPENING_BALANCE_TABLE_NAME,
     enums::provider::{GameProvider, LiveCasinoProvider, OnlineCasinoProvider, SlotProvider},
-    helpers::State,
+    helpers::{
+        add_month, get_hong_kong_11_hours_from_date,
+        query_helper::{get_archive_schema_name, get_dynamic_table_name},
+        State,
+    },
     types::{BetID, Currency, UserID},
 };
 
-use self::loader::{get_upline, Bet, BetDetails};
+use self::loader::{delete_bets_by_ids, get_upline, save_debts, Bet, BetDetails, CreditDebt};
+
+use super::opening_balance::loader::update_opening_balance_amount;
 
 pub mod loader;
 
@@ -24,10 +33,10 @@ type DebtsByDate = HashMap<Date, HashMap<UserID, CurrencyAmount>>;
 type WlByDateByUser = HashMap<Date, HashMap<UserID, i64>>;
 
 pub async fn handle_bet_chunk(
-    provider: GameProvider,
+    provider: &GameProvider,
     bets: Vec<Bet>,
     state: &mut State,
-    transaction: &mut Transaction<'_, sqlx::Postgres>,
+    pg_transaction: &mut Transaction<'_, sqlx::Postgres>,
 ) -> anyhow::Result<()> {
     let mut bet_ids: Vec<BetID> = vec![];
     let mut debts: DebtsByDate = HashMap::new();
@@ -43,7 +52,7 @@ pub async fn handle_bet_chunk(
             .or_insert(bet.username.clone());
 
         if !state.upline.contains_key(&bet.user_id) {
-            let upline = get_upline(&bet.user_id, transaction).await?;
+            let upline = get_upline(&bet.user_id, pg_transaction).await?;
             state.upline.insert(bet.user_id.clone(), upline);
         }
 
@@ -66,16 +75,85 @@ pub async fn handle_bet_chunk(
         }
     }
 
+    save_all(
+        pg_transaction,
+        &provider,
+        create_credit_debt_models(debts, state)?,
+        bet_ids,
+        wl_by_date_by_user,
+    )
+    .await?;
+
     Ok(())
 }
 
 async fn save_all(
-    state: &mut State,
-    provider_or_bet_type: GameProvider,
-    depts: DebtsByDate,
+    pg_transaction: &mut Transaction<'_, sqlx::Postgres>,
+    provider_or_bet_type: &GameProvider,
+    debts: HashMap<Date, Vec<CreditDebt>>,
     bet_ids: Vec<BetID>,
     wl_by_date_by_user: WlByDateByUser,
-) {
+) -> Result<()> {
+    for (date, debts) in debts.into_iter() {
+        save_debts(pg_transaction, debts, date).await?;
+    }
+
+    delete_bets_by_ids(bet_ids, provider_or_bet_type, pg_transaction).await?;
+
+    let current_start_of_month = OffsetDateTime::now_utc().date().replace_day(1).unwrap();
+
+    for (date, wl_by_user) in wl_by_date_by_user.into_iter() {
+        let mut start_of_month_table = date.replace_day(1).unwrap();
+
+        loop {
+            update_opening_balance_amount(
+                pg_transaction,
+                get_archive_schema_name(start_of_month_table),
+                get_dynamic_table_name(OPENING_BALANCE_TABLE_NAME, start_of_month_table),
+                start_of_month_table,
+                &wl_by_user,
+            )
+            .await?;
+
+            start_of_month_table = add_month(start_of_month_table);
+
+            if start_of_month_table >= current_start_of_month {
+                break;
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn create_credit_debt_models(
+    figures: DebtsByDate,
+    state: &State,
+) -> Result<HashMap<Date, Vec<CreditDebt>>> {
+    let mut result = HashMap::new();
+
+    for (date, debts_by_user) in figures.into_iter() {
+        let mut debts = vec![];
+
+        for (user_id, debt) in debts_by_user.into_iter() {
+            debts.push(CreditDebt {
+                id: Uuid::new_v4(),
+                username: state
+                    .username_by_user_id
+                    .get(&user_id)
+                    .ok_or_else(|| anyhow!("username was not found for user_id: {}", user_id))?
+                    .clone(),
+                currency: debt.currency,
+                user_id,
+                date: get_hong_kong_11_hours_from_date(date),
+                debt_amount: debt.amount,
+            });
+        }
+
+        result.insert(date, debts);
+    }
+
+    Ok(result)
 }
 
 fn calculate_debt_by_bet(

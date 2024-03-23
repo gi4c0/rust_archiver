@@ -1,6 +1,8 @@
-use strum_macros::{AsRefStr, EnumString};
+use strum_macros::{AsRefStr, EnumString, VariantArray};
 
-#[derive(Debug, AsRefStr, EnumString)]
+use super::GameProvider;
+
+#[derive(AsRefStr, Debug, EnumString, VariantArray, Clone)]
 pub enum OnlineCasinoProvider {
     #[strum(serialize = "evoplay_online_casino")]
     Evoplay,
@@ -46,4 +48,10 @@ pub enum OnlineCasinoProvider {
     Ninja,
     #[strum(serialize = "kiss_online_casino")]
     Kiss,
+}
+
+impl OnlineCasinoProvider {
+    pub fn into_game_provider(self) -> GameProvider {
+        GameProvider::OnlineCasino(self)
+    }
 }
