@@ -25,29 +25,29 @@ pub async fn run(state: &mut State) -> anyhow::Result<()> {
     let providers: Vec<GameProvider> = [
         LiveCasinoProvider::VARIANTS
             .into_iter()
-            .map(|p| p.clone().into_game_provider())
+            .map(|p| p.into_game_provider())
             .collect(),
         OnlineCasinoProvider::VARIANTS
             .into_iter()
-            .map(|p| p.clone().into_game_provider())
+            .map(|p| p.into_game_provider())
             .collect(),
         SlotProvider::VARIANTS
             .into_iter()
-            .map(|p| p.clone().into_game_provider())
+            .map(|p| p.into_game_provider())
             .collect(),
         Lottery::VARIANTS
             .into_iter()
-            .map(|p| p.clone().into_game_provider())
+            .map(|p| p.into_game_provider())
             .collect(),
         Sportsbook::VARIANTS
             .into_iter()
-            .map(|p| p.clone().into_game_provider())
+            .map(|p| p.into_game_provider())
             .collect::<Vec<GameProvider>>(),
     ]
     .concat();
 
     'provider_bet_for: for provider in providers {
-        let runtime_table_name = get_bet_table_name(&provider);
+        let runtime_table_name = get_bet_table_name(provider);
 
         loop {
             let bet_chunk = get_target_data_bench(&state.pg, &runtime_table_name, None).await?;
@@ -62,7 +62,7 @@ pub async fn run(state: &mut State) -> anyhow::Result<()> {
                 .await
                 .context("Failed to start PG transaction")?;
 
-            handle_bet_chunk(&provider, bet_chunk, state, &mut pg_transaction).await?;
+            handle_bet_chunk(provider, bet_chunk, state, &mut pg_transaction).await?;
         }
     }
 

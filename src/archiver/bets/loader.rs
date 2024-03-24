@@ -207,10 +207,10 @@ pub async fn save_debts(
 
 pub async fn delete_bets_by_ids(
     bet_ids: Vec<BetID>,
-    provider: &GameProvider,
+    provider: GameProvider,
     transaction: &mut Transaction<'_, sqlx::Postgres>,
 ) -> Result<()> {
-    let table_name = get_bet_table_name(&provider);
+    let table_name = get_bet_table_name(provider);
     let schema = &*SCHEMA;
 
     let mut query_builder: QueryBuilder<Postgres> =

@@ -36,7 +36,7 @@ type DebtsByDate = HashMap<Date, HashMap<UserID, CurrencyAmount>>;
 type WlByDateByUser = HashMap<Date, HashMap<UserID, i64>>;
 
 pub async fn handle_bet_chunk(
-    provider: &GameProvider,
+    provider: GameProvider,
     bets: Vec<Bet>,
     state: &mut State,
     pg_transaction: &mut Transaction<'_, sqlx::Postgres>,
@@ -73,7 +73,7 @@ pub async fn handle_bet_chunk(
             calculate_debt_by_bet(&bet, existing_debts, state);
         }
 
-        if let Some(detail) = extend_bet_with_details(state, &bet, &provider).await {
+        if let Some(detail) = extend_bet_with_details(state, &bet, provider).await {
             bet_details.push(detail);
         }
     }
@@ -84,7 +84,7 @@ pub async fn handle_bet_chunk(
 
     save_all(
         pg_transaction,
-        &provider,
+        provider,
         create_credit_debt_models(debts, state)?,
         bet_ids,
         wl_by_date_by_user,
@@ -96,7 +96,7 @@ pub async fn handle_bet_chunk(
 
 async fn save_all(
     pg_transaction: &mut Transaction<'_, sqlx::Postgres>,
-    provider_or_bet_type: &GameProvider,
+    provider_or_bet_type: GameProvider,
     debts: HashMap<Date, Vec<CreditDebt>>,
     bet_ids: Vec<BetID>,
     wl_by_date_by_user: WlByDateByUser,
@@ -196,7 +196,7 @@ fn calculate_debt_by_bet(
 async fn extend_bet_with_details(
     state: &mut State,
     bet: &Bet,
-    provider: &GameProvider,
+    provider: GameProvider,
 ) -> Option<BetDetails> {
     match provider {
         GameProvider::LiveCasino(LiveCasinoProvider::Sexy) => state

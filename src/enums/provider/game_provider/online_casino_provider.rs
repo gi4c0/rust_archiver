@@ -2,7 +2,7 @@ use strum_macros::{AsRefStr, EnumString, VariantArray};
 
 use super::GameProvider;
 
-#[derive(AsRefStr, Debug, EnumString, VariantArray, Clone)]
+#[derive(AsRefStr, Debug, EnumString, VariantArray, Copy, Clone)]
 pub enum OnlineCasinoProvider {
     #[strum(serialize = "evoplay_online_casino")]
     Evoplay,
