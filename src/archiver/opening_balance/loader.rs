@@ -6,7 +6,7 @@ use time::{Date, OffsetDateTime};
 use uuid::Uuid;
 
 use crate::{
-    db::tables::OPENING_BALANCE_TABLE_NAME,
+    consts::OPENING_BALANCE_TABLE_NAME,
     enums::PositionEnum,
     helpers::{
         get_hong_kong_11_hours_from_date,

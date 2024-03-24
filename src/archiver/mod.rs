@@ -5,14 +5,19 @@ use anyhow::Context;
 use strum::VariantArray;
 
 use crate::{
-    configuration, connectors, db,
+    connectors,
+    consts::BET_DETAIL_REPORT_TABLE_NAME,
+    db,
     enums::provider::{
         GameProvider, LiveCasinoProvider, Lottery, OnlineCasinoProvider, SlotProvider, Sportsbook,
     },
     helpers::{logger::log_error, query_helper::get_bet_table_name, State},
 };
 
-use self::bets::{handle_bet_chunk, loader::get_target_data_bench};
+use self::bets::{
+    handle_bet_chunk,
+    loader::{get_target_data_bench, truncate_maria_db_table, update_bet_details},
+};
 
 pub async fn run(state: &mut State) -> anyhow::Result<()> {
     opening_balance::create_opening_balance_records(state).await?;
@@ -61,16 +66,17 @@ pub async fn run(state: &mut State) -> anyhow::Result<()> {
         }
     }
 
+    update_bet_details(&state.mysql).await?;
+    truncate_maria_db_table(&state.mysql, BET_DETAIL_REPORT_TABLE_NAME).await?;
+
     Ok(())
 }
 
 pub async fn launch() {
     dotenvy::dotenv().expect("Failed to parse .env");
 
-    let config = configuration::parse_config();
-
-    let pg = db::create_pg_connection(&config.pg).await;
-    let mysql = db::create_mysql_connection(&config.mysql).await;
+    let pg = db::create_pg_connection().await;
+    let mysql = db::create_mysql_connection().await;
 
     let connectors = connectors::load_connectors(&pg).await.unwrap();
     let mut state = State::new(connectors, pg, mysql);

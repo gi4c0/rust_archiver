@@ -1,10 +1,12 @@
 use anyhow::{Context, Result};
-use sqlx::{prelude::FromRow, Execute, PgPool, Postgres, QueryBuilder, Transaction};
+use sqlx::{
+    prelude::FromRow, Execute, MySql, MySqlPool, PgPool, Postgres, QueryBuilder, Transaction,
+};
 use time::{Date, Duration, OffsetDateTime};
 use uuid::Uuid;
 
 use crate::{
-    db::tables::CREDIT_DEBT_TABLE_NAME,
+    consts::{BET_DETAIL_REPORT_TABLE_NAME, CREDIT_DEBT_TABLE_NAME, MARIA_DB_SCHEMA, SCHEMA},
     enums::{bet::BetStatus, provider::GameProvider, PositionEnum},
     helpers::{
         get_hong_kong_11_hours_from_date,
@@ -209,9 +211,10 @@ pub async fn delete_bets_by_ids(
     transaction: &mut Transaction<'_, sqlx::Postgres>,
 ) -> Result<()> {
     let table_name = get_bet_table_name(&provider);
+    let schema = &*SCHEMA;
 
     let mut query_builder: QueryBuilder<Postgres> =
-        QueryBuilder::new(format!("DELETE FROM public.{table_name} WHERE id IN ("));
+        QueryBuilder::new(format!("DELETE FROM {schema}.{table_name} WHERE id IN ("));
 
     let mut separated = query_builder.separated(",");
 
@@ -232,6 +235,63 @@ pub async fn delete_bets_by_ids(
     .execute(&mut **transaction)
     .await
     .context("Failed to delete list of bets")?;
+
+    Ok(())
+}
+
+pub async fn insert_bet_details_to_details_table(
+    mysql: &MySqlPool,
+    details: Vec<BetDetails>,
+) -> Result<()> {
+    let schema = &*MARIA_DB_SCHEMA;
+
+    let mut query_builder: QueryBuilder<MySql> = QueryBuilder::new(format!(
+        "INSERT INTO {schema}.{BET_DETAIL_REPORT_TABLE_NAME} (id, details, replay)"
+    ));
+
+    query_builder.push_values(details.into_iter(), |mut b, r| {
+        b.push_bind(r.id).push_bind(r.details).push_bind(r.replay);
+    });
+
+    let mut query = query_builder.build();
+
+    sqlx::query_with(
+        query.sql(),
+        query
+            .take_arguments()
+            .context("Failed to take arguments for insert_bet_details_to_details_table query")?,
+    )
+    .execute(mysql)
+    .await
+    .context("Failed to insert bet details to details table")?;
+
+    Ok(())
+}
+
+pub async fn update_bet_details(mysql: &MySqlPool) -> Result<()> {
+    let schema = &*MARIA_DB_SCHEMA;
+
+    sqlx::query(&format!(
+        r#"
+            UPDATE {schema}.bet bet
+            JOIN {schema}.bet_archive_details details ON bet.id = details.id
+            SET bet.details = details.details,
+            bet.replay = details.replay
+        "#
+    ))
+    .execute(mysql)
+    .await
+    .context("Failed to update details in column DB")
+    .map(|_| ())
+}
+
+pub async fn truncate_maria_db_table(conn: &MySqlPool, table: &str) -> Result<()> {
+    let schema = &*MARIA_DB_SCHEMA;
+
+    sqlx::query(&format!("TRUNCATE TABLE {schema}.{table}"))
+        .execute(conn)
+        .await
+        .with_context(|| format!("Fail to truncate '{table}' table"))?;
 
     Ok(())
 }

@@ -131,6 +131,7 @@ dependencies = [
  "derive_more",
  "dotenvy",
  "hex",
+ "lazy_static",
  "md-5",
  "openssl",
  "parse-display",

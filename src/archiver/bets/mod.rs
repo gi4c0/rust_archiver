@@ -3,21 +3,24 @@ use std::collections::HashMap;
 use anyhow::{anyhow, Result};
 use serde_json::json;
 use sqlx::Transaction;
-use time::{macros::time, Date, Duration, OffsetDateTime};
+use time::{Date, OffsetDateTime};
 use uuid::Uuid;
 
 use crate::{
-    db::tables::OPENING_BALANCE_TABLE_NAME,
+    consts::OPENING_BALANCE_TABLE_NAME,
     enums::provider::{GameProvider, LiveCasinoProvider, OnlineCasinoProvider, SlotProvider},
     helpers::{
-        add_month, get_hong_kong_11_hours_from_date,
+        add_month, get_figures_date, get_hong_kong_11_hours_from_date,
         query_helper::{get_archive_schema_name, get_dynamic_table_name},
         State,
     },
     types::{BetID, Currency, UserID},
 };
 
-use self::loader::{delete_bets_by_ids, get_upline, save_debts, Bet, BetDetails, CreditDebt};
+use self::loader::{
+    delete_bets_by_ids, get_upline, insert_bet_details_to_details_table, save_debts, Bet,
+    BetDetails, CreditDebt,
+};
 
 use super::opening_balance::loader::update_opening_balance_amount;
 
@@ -73,6 +76,10 @@ pub async fn handle_bet_chunk(
         if let Some(detail) = extend_bet_with_details(state, &bet, &provider).await {
             bet_details.push(detail);
         }
+    }
+
+    if bet_details.len() > 0 {
+        insert_bet_details_to_details_table(&state.mysql, bet_details).await?;
     }
 
     save_all(
@@ -184,16 +191,6 @@ fn calculate_debt_by_bet(
                 amount: total_amount,
             });
     }
-}
-
-fn get_figures_date(bet_date: OffsetDateTime) -> Date {
-    let threshold = bet_date.replace_time(time!(3:00));
-
-    if bet_date > threshold {
-        return (threshold + Duration::days(1)).date();
-    }
-
-    threshold.date()
 }
 
 async fn extend_bet_with_details(

@@ -6,7 +6,7 @@ use uuid::Uuid;
 pub mod loader;
 
 use crate::{
-    db::tables::OPENING_BALANCE_TABLE_NAME,
+    consts::OPENING_BALANCE_TABLE_NAME,
     helpers::{
         get_hong_kong_11_hours, get_hong_kong_11_hours_from_date,
         query_helper::{get_archive_schema_name, get_dynamic_table_name},

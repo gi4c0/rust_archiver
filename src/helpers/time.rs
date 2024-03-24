@@ -1,4 +1,4 @@
-use time::{macros::time, Date, Month, OffsetDateTime, Time};
+use time::{macros::time, Date, Duration, Month, OffsetDateTime, Time};
 
 pub fn get_hong_kong_11_hours() -> OffsetDateTime {
     OffsetDateTime::now_utc().replace_time(time!(3:00))
@@ -15,4 +15,14 @@ pub fn add_month(date: Date) -> Date {
         }
         _ => date.replace_month(date.month().next()).unwrap(),
     }
+}
+
+pub fn get_figures_date(bet_date: OffsetDateTime) -> Date {
+    let threshold = bet_date.replace_time(time!(3:00));
+
+    if bet_date > threshold {
+        return (threshold + Duration::days(1)).date();
+    }
+
+    threshold.date()
 }
