@@ -63,6 +63,11 @@ pub async fn run(state: &mut State) -> anyhow::Result<()> {
                 .context("Failed to start PG transaction")?;
 
             handle_bet_chunk(provider, bet_chunk, state, &mut pg_transaction).await?;
+
+            pg_transaction
+                .commit()
+                .await
+                .context("Failed to commit transaction on bet chunk")?;
         }
     }
 
