@@ -1,35 +1,95 @@
+use std::env;
+
 use lib::{
-    configuration::{self, AppConfig, DBConfig},
-    db::create_pg_connection,
+    db::{
+        maria_db_migrations::create_maria_db_tables,
+        pg_migrations::{create_pg_tables, seed},
+    },
+    helpers::{provider::get_game_providers, query_helper::get_bet_table_name},
 };
-use sqlx::PgPool;
+use sqlx::{
+    mysql::{MySqlConnectOptions, MySqlPoolOptions},
+    postgres::{PgConnectOptions, PgPoolOptions},
+    MySqlPool, PgPool,
+};
 
-pub async fn create_test_connection() -> PgPool {
-    let mut config = configuration::parse_config();
+pub async fn create_pg_test_connection() -> PgPool {
+    let connect_options = PgConnectOptions::new()
+        .host(&env::var("DB_HOST").expect("DB_HOST is not set"))
+        .port(
+            env::var("DB_PORT")
+                .expect("DB_PORT is not set")
+                .parse()
+                .expect("DB_PORT is not a number"),
+        )
+        .database("archiver_rust_test")
+        .username(&env::var("TYPEORM_USERNAME").expect("TYPEORM_USERNAME is not set"))
+        .password(&env::var("TYPEORM_PASSWORD").expect("TYPEORM_PASSWORD is not set"));
 
-    config = AppConfig {
-        pg: DBConfig {
-            db_name: "archiver_rust_test".to_string(),
-            ..config.pg
-        },
-        ..config
-    };
-
-    let conn = create_pg_connection(&config.pg).await;
-    sqlx::migrate!("./migrations")
-        .run(&conn)
+    let conn = PgPoolOptions::new()
+        .max_connections(5)
+        .connect_with(connect_options)
         .await
-        .expect("Failed to run migrations");
+        .expect("Failed to connect to PostgreSQL DB");
 
-    truncate_tables(&conn).await;
+    create_pg_tables(&conn).await;
+    truncate_pg_tables(&conn).await;
+    seed(&conn).await;
+
     conn
 }
 
-async fn truncate_tables(pg: &PgPool) {
-    let table_names = vec!["balance", "user"];
+pub async fn create_maria_db_test_connection() -> MySqlPool {
+    let connect_options = MySqlConnectOptions::new()
+        .host(&env::var("MARIA_DB_HOST").expect("MARIA_DB_HOST is not set"))
+        .port(
+            env::var("MARIA_DB_PORT")
+                .expect("MARIA_DB_PORT is not set")
+                .parse()
+                .expect("MARIA_DB_PORT is not a number"),
+        )
+        .username(&env::var("MARIA_DB_USERNAME").expect("MARIA_DB_USERNAME is not set"))
+        .password(&env::var("MARIA_DB_PASSWORD").expect("MARIA_DB_PASSWORD is not set"));
+
+    let conn = MySqlPoolOptions::new()
+        .max_connections(5)
+        .connect_with(connect_options)
+        .await
+        .expect("Failed to connect to MariaDB");
+
+    create_maria_db_tables(&conn).await;
+    truncate_maria_db_tables(&conn).await;
+
+    conn
+}
+
+async fn truncate_pg_tables(pg: &PgPool) {
+    let table_names: Vec<String> = vec![
+        "balance".to_string(),
+        "user".to_string(),
+        "bet_status".to_string(),
+        "currency".to_string(),
+        "bet_lottery".to_string(),
+    ];
+
+    let bet_table_names: Vec<String> = get_game_providers()
+        .into_iter()
+        .map(get_bet_table_name)
+        .collect();
+
+    for table in [table_names, bet_table_names].concat() {
+        sqlx::query(&format!("TRUNCATE TABLE public.{table} CASCADE;"))
+            .execute(pg)
+            .await
+            .expect("Failed to truncate table");
+    }
+}
+
+async fn truncate_maria_db_tables(pg: &MySqlPool) {
+    let table_names = vec!["user_card", "bet", "bet_archive_details"];
 
     for table in table_names {
-        sqlx::query(&format!("TRUNCATE TABLE public.{table} CASCADE;"))
+        sqlx::query(&format!("TRUNCATE TABLE public.{table};"))
             .execute(pg)
             .await
             .expect("Failed to truncate table");

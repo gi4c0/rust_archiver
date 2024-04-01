@@ -5,7 +5,7 @@ pub mod bet;
 pub mod provider;
 
 #[repr(u8)]
-#[derive(Clone, Deserialize, Serialize, Debug, Copy)]
+#[derive(Clone, Deserialize, Serialize, Debug, Copy, PartialEq, Eq)]
 pub enum PositionEnum {
     Owner = 0,
     Company = 1,

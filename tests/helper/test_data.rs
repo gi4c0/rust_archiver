@@ -1,30 +1,199 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use lib::{
-    archiver::opening_balance::loader::{insert_opening_balance_records, OpeningBalance},
-    helpers::{add_month, get_hong_kong_11_hours_from_date, query_helper::get_archive_schema_name},
+    archiver::{
+        bets::loader::Bet,
+        opening_balance::loader::{insert_opening_balance_records, OpeningBalance},
+    },
+    consts::SCHEMA,
+    enums::{
+        bet::BetStatus,
+        provider::{
+            GameProvider, LiveCasinoProvider, Lottery, OnlineCasinoProvider, SlotProvider,
+            Sportsbook,
+        },
+        PositionEnum,
+    },
+    helpers::{
+        add_month, get_hong_kong_11_hours_from_date,
+        query_helper::{get_archive_schema_name, get_bet_table_name},
+    },
+    types::{
+        BetID, Currency, ProviderBetID, ProviderGameVendorID, ProviderGameVendorLabel, UserID,
+        Username,
+    },
 };
-use sqlx::PgPool;
-use time::{Date, Duration, OffsetDateTime};
+use sqlx::{Execute, MySqlPool, PgPool, Postgres, QueryBuilder};
+use time::{macros::time, Date, Duration, OffsetDateTime};
 use uuid::Uuid;
 
 use super::{
-    create_opening_balance_table,
     db::{create_archive_schema, drop_schema},
-    user::{save_balance, save_users, Balance, User},
+    tables::{create_credit_debt_table, create_opening_balance_table},
+    user::{save_balance, save_users_maria_db, save_users_pg, Balance, User},
 };
 
-pub async fn prepare_data(pg_pool: &PgPool) {
-    let mut users = vec![];
+pub struct TestData {
+    pub credit_player: User,
+    pub cash_player: User,
+    pub bets_by_provider: HashMap<GameProvider, Vec<Bet>>,
+}
+
+pub async fn prepare_data(pg_pool: &PgPool, maria_db: &MySqlPool, start_date: Date) -> TestData {
+    let (cash_player, credit_player) = generate_users_and_return_players(pg_pool, maria_db).await;
+
+    create_initial_balance(
+        pg_pool,
+        &[cash_player.clone(), credit_player.clone()],
+        start_date,
+    )
+    .await;
+
+    let bets_by_provider = create_bets(
+        pg_pool,
+        &[cash_player.clone(), credit_player.clone()],
+        start_date,
+    )
+    .await;
+
+    TestData {
+        credit_player,
+        cash_player,
+        bets_by_provider,
+    }
+}
+
+/// Generate upline, save it and return player
+async fn generate_users_and_return_players(pg_pool: &PgPool, maria_db: &MySqlPool) -> (User, User) {
+    let mut agents: Vec<User> = vec![];
+
+    let agent_position_username = [
+        ("AMB", PositionEnum::Owner),
+        ("AA", PositionEnum::Company),
+        ("BB", PositionEnum::Shareholder),
+        ("CC", PositionEnum::Agent),
+    ];
+
+    for (i, (username, position)) in agent_position_username.into_iter().enumerate() {
+        let current_username;
+        let mut parent_id = None;
+
+        if position == PositionEnum::Owner {
+            current_username = username.to_string();
+        } else {
+            current_username = format!("{}{}", agents[i - 1].username, username);
+            parent_id = agents[i - 1].parent_id.clone();
+        }
+
+        agents.push(User {
+            id: UserID(Uuid::new_v4()),
+            salt: "".to_string(),
+            position,
+            login: current_username.clone(),
+            username: Username(current_username),
+            is_sub: false,
+            password: Uuid::new_v4().to_string(),
+            parent_id,
+            activated_at: Some(OffsetDateTime::now_utc()),
+            registered_at: Some(OffsetDateTime::now_utc()),
+        });
+    }
+
+    let parent_agent = agents.last().unwrap();
+    let mut players: Vec<User> = vec![];
 
     for i in 0..3 {
-        users.push(User::random(i));
+        let username = Username(format!("{}00000{i}", parent_agent.username));
+
+        players.push(User {
+            id: UserID(Uuid::new_v4()),
+            salt: "".to_string(),
+            position: PositionEnum::Player,
+            login: username.0.clone(),
+            username,
+            is_sub: false,
+            password: Uuid::new_v4().to_string(),
+            parent_id: Some(parent_agent.id),
+            activated_at: Some(OffsetDateTime::now_utc()),
+            registered_at: Some(OffsetDateTime::now_utc()),
+        })
     }
 
     // Imitate not activated user for tests
-    users[0].activated_at = None;
-    save_users(pg_pool, users.clone()).await;
+    players[0].activated_at = None;
 
+    let all_users = [agents, players.clone()].concat();
+
+    save_users_pg(pg_pool, all_users.clone()).await;
+    save_users_maria_db(maria_db, all_users).await;
+
+    (players.pop().unwrap(), players.pop().unwrap())
+}
+
+async fn create_bets(
+    pg_pool: &PgPool,
+    users: &[User],
+    start_date: Date,
+) -> HashMap<GameProvider, Vec<Bet>> {
+    let providers = vec![
+        GameProvider::LiveCasino(LiveCasinoProvider::Sexy),
+        GameProvider::Slot(SlotProvider::Ameba),
+        GameProvider::OnlineCasino(OnlineCasinoProvider::Kingmaker),
+        GameProvider::Lottery(Lottery::StockDowJones),
+        GameProvider::Sport(Sportsbook::SingleNonLive),
+    ];
+
+    let mut bets_by_provider: HashMap<GameProvider, Vec<Bet>> = HashMap::new();
+
+    for provider in providers {
+        let mut current_iteration_date = OffsetDateTime::new_utc(start_date, time!(0:00));
+        let now = OffsetDateTime::now_utc();
+
+        while current_iteration_date <= now {
+            for user in users {
+                bets_by_provider
+                    .entry(provider)
+                    .or_insert(vec![])
+                    .push(Bet {
+                        id: BetID(Uuid::new_v4()),
+                        wl: Some(10),
+                        username: user.username.clone(),
+                        user_id: user.id,
+                        ip: "127.0.0.1".to_string(),
+                        stake: 2,
+                        status: BetStatus::Closed,
+                        last_status_change: current_iteration_date,
+                        replay: "".to_string(),
+                        details: None,
+                        currency: Currency("THB".to_string()),
+                        funds_delta: [0, 0, 0, 0, 0, 0, 1],
+                        valid_amount: Some(2),
+                        transactions: vec![],
+                        creation_date: current_iteration_date - Duration::seconds(1),
+                        pt_by_position: [0, 0, 0, 0, 0, 0, 1],
+                        transaction_ids: vec!["1".to_string(), "2".to_string()],
+                        provider_bet_id: ProviderBetID(Uuid::new_v4().to_string()),
+                        commission_amount: [0, 0, 0, 0, 0, 0, 1],
+                        commission_percent: [0, 1, 2, 3, 4, 5, 6],
+                        provider_game_vendor_id: ProviderGameVendorID("Game ID".to_string()),
+                        provider_game_vendor_label: ProviderGameVendorLabel(
+                            "Game name".to_string(),
+                        ),
+                    });
+            }
+
+            current_iteration_date += Duration::minutes(30);
+        }
+    }
+
+    for (provider, bets) in &bets_by_provider {
+        insert_bets(pg_pool, bets.clone(), *provider).await;
+    }
+
+    bets_by_provider
+}
+
+async fn create_initial_balance(pg_pool: &PgPool, users: &[User], start_date: Date) {
     let balances: Vec<Balance> = users
         .iter()
         .enumerate()
@@ -33,24 +202,24 @@ pub async fn prepare_data(pg_pool: &PgPool) {
 
     save_balance(pg_pool, balances).await;
 
-    let last_date = OffsetDateTime::now_utc().date() - Duration::days(31 * 5);
-    create_archive_tables_for_test(pg_pool, last_date).await;
+    create_archive_tables_for_test(pg_pool, start_date).await;
 
     let initial_opening_balance: Vec<OpeningBalance> = users[1..] // skip not activated user
         .iter()
         .map(|u| OpeningBalance {
             id: Uuid::new_v4(),
             amount: 1000,
-            creation_date: get_hong_kong_11_hours_from_date(last_date),
+            creation_date: get_hong_kong_11_hours_from_date(start_date),
             user_id: u.id,
         })
         .collect();
 
-    insert_opening_balance_records(pg_pool, initial_opening_balance, last_date)
+    insert_opening_balance_records(pg_pool, initial_opening_balance, start_date)
         .await
         .unwrap()
 }
 
+/// Creates opening balance tables from initial date to now
 async fn create_archive_tables_for_test(pg_pool: &PgPool, initial_date: Date) {
     let now = OffsetDateTime::now_utc().date().replace_day(1).unwrap();
     let mut current_date = initial_date.replace_day(1).unwrap();
@@ -76,5 +245,100 @@ async fn create_archive_tables_for_test(pg_pool: &PgPool, initial_date: Date) {
 
     for table_date in tables {
         create_opening_balance_table(pg_pool, table_date).await;
+        create_credit_debt_table(pg_pool, table_date).await;
+    }
+}
+
+async fn insert_bets(pg_pool: &PgPool, mut bets: Vec<Bet>, provider: GameProvider) {
+    let schema = &*SCHEMA;
+    let table = get_bet_table_name(provider);
+
+    let mut chunk = 100;
+
+    loop {
+        let mut lottery_kind = "";
+
+        if let GameProvider::Lottery(_) = provider {
+            lottery_kind = ", kind";
+        }
+
+        let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(format!(
+            r#"
+                INSERT INTO {schema}.{table} (
+                    id,
+                    creation_date,
+                    last_status_change,
+                    stake,
+                    valid_amount,
+                    wl,
+                    user_id,
+                    username,
+                    ip,
+                    status,
+                    currency,
+                    pt_by_position,
+                    commission_percent,
+                    commission_amount,
+                    funds_delta,
+                    details,
+                    replay,
+                    transaction_ids,
+                    transactions,
+                    provider_bet_id,
+                    provider_game_vendor_id,
+                    provider_game_vendor_label
+                    {lottery_kind}
+                )
+            "#
+        ));
+
+        query_builder.push_values(bets.drain(0..chunk), |mut b, bet| {
+            b.push_bind(bet.id)
+                .push_bind(bet.creation_date)
+                .push_bind(bet.last_status_change)
+                .push_bind(bet.stake)
+                .push_bind(bet.valid_amount)
+                .push_bind(bet.wl)
+                .push_bind(bet.user_id)
+                .push_bind(bet.username)
+                .push_bind(bet.ip)
+                .push_bind(bet.status.to_string())
+                .push_bind(bet.currency)
+                .push_bind(bet.pt_by_position)
+                .push_bind(bet.commission_percent)
+                .push_bind(bet.commission_amount)
+                .push_bind(bet.funds_delta)
+                .push_bind(bet.details)
+                .push_bind(bet.replay)
+                .push_bind(bet.transaction_ids)
+                .push_bind(bet.transactions)
+                .push_bind(bet.provider_bet_id)
+                .push_bind(bet.provider_game_vendor_id)
+                .push_bind(bet.provider_game_vendor_label);
+
+            if let GameProvider::Lottery(p) = provider {
+                b.push_bind(p.to_string());
+            }
+        });
+
+        let mut query = query_builder.build();
+
+        sqlx::query_with(
+            query.sql(),
+            query
+                .take_arguments()
+                .expect("Failed to take arguments for insert bets"),
+        )
+        .execute(pg_pool)
+        .await
+        .expect("Failed to insert bets");
+
+        if bets.len() == 0 {
+            break;
+        }
+
+        if chunk > bets.len() {
+            chunk = bets.len();
+        }
     }
 }

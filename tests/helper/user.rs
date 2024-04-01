@@ -1,15 +1,18 @@
-use lib::enums::PositionEnum;
-use sqlx::{Execute, PgPool, Postgres, QueryBuilder};
+use lib::{
+    enums::PositionEnum,
+    types::{UserID, Username},
+};
+use sqlx::{Execute, MySql, MySqlPool, PgPool, Postgres, QueryBuilder};
 use time::OffsetDateTime;
 use uuid::Uuid;
 
 #[derive(Clone)]
 pub struct User {
-    pub id: Uuid,
-    pub username: String,
+    pub id: UserID,
+    pub username: Username,
     pub password: String,
     pub position: PositionEnum,
-    pub parent_id: Option<Uuid>,
+    pub parent_id: Option<UserID>,
     pub is_sub: bool,
     pub login: String,
     pub activated_at: Option<OffsetDateTime>,
@@ -17,24 +20,33 @@ pub struct User {
     pub salt: String,
 }
 
-impl User {
-    pub fn random(i: i32) -> User {
-        User {
-            id: Uuid::new_v4(),
-            username: format!("AABB{i}"),
-            password: Uuid::new_v4().to_string(),
-            position: PositionEnum::Player,
-            parent_id: None,
-            is_sub: false,
-            login: Uuid::new_v4().to_string(),
-            activated_at: Some(OffsetDateTime::now_utc()),
-            registered_at: Some(OffsetDateTime::now_utc()),
-            salt: Uuid::new_v4().to_string(),
-        }
-    }
+pub async fn save_users_maria_db(pool: &MySqlPool, users: Vec<User>) {
+    let mut query_builder: QueryBuilder<MySql> = QueryBuilder::new(
+        "INSERT INTO public.user_card (
+            id,
+            username,
+            parent_id,
+            position
+        )",
+    );
+
+    query_builder.push_values(users.into_iter(), |mut values, row| {
+        values
+            .push_bind(row.id.to_string())
+            .push_bind(row.username)
+            .push_bind(row.parent_id.map(|id| id.to_string()))
+            .push_bind(row.position as i16);
+    });
+
+    let mut query = query_builder.build();
+
+    sqlx::query_with(query.sql(), query.take_arguments().unwrap())
+        .execute(pool)
+        .await
+        .expect("Failed to save user cards to Maria DB");
 }
 
-pub async fn save_users(pg_pool: &PgPool, users: Vec<User>) {
+pub async fn save_users_pg(pg_pool: &PgPool, users: Vec<User>) {
     let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
         "INSERT INTO public.user (
             id,
@@ -69,12 +81,12 @@ pub async fn save_users(pg_pool: &PgPool, users: Vec<User>) {
     sqlx::query_with(query.sql(), query.take_arguments().unwrap())
         .execute(pg_pool)
         .await
-        .expect("Failed to save users to DB");
+        .expect("Failed to save users to Postgres");
 }
 
 pub struct Balance {
     pub id: Uuid,
-    pub user_id: Uuid,
+    pub user_id: UserID,
     pub state: i64,
     pub credit: i64,
     pub credit_available: i64,

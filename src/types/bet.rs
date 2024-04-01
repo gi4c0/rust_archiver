@@ -3,12 +3,13 @@ use parse_display::Display;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use std::hash::Hash;
+use uuid::Uuid;
 
 #[derive(
     PartialEq, Eq, Clone, Debug, FromRow, sqlx::Type, Deserialize, Serialize, Display, AsRef,
 )]
 #[sqlx(transparent)]
-pub struct BetID(pub String);
+pub struct BetID(pub Uuid);
 
 #[derive(
     PartialEq, Eq, Clone, Debug, FromRow, sqlx::Type, Deserialize, Serialize, Display, AsRef,
@@ -29,4 +30,4 @@ impl Hash for ProviderGameVendorID {
 
 #[derive(PartialEq, Eq, Clone, Debug, FromRow, sqlx::Type, Deserialize, Serialize, Display)]
 #[sqlx(transparent)]
-pub struct ProviderGameLabel(pub String);
+pub struct ProviderGameVendorLabel(pub String);

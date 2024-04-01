@@ -1,8 +1,8 @@
-use parse_display::Display;
+use strum_macros::{AsRefStr, Display, VariantNames};
 
-#[derive(Display, sqlx::Type)]
-#[display(style = "UPPERCASE")]
+#[derive(sqlx::Type, Clone, Copy, Display, AsRefStr, VariantNames)]
 #[sqlx(rename_all = "UPPERCASE")]
+#[strum(serialize_all = "UPPERCASE")]
 pub enum BetStatus {
     Active,
     Pending,

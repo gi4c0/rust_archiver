@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use serde_json::json;
 use sqlx::Transaction;
 use time::{Date, OffsetDateTime};
@@ -70,7 +70,7 @@ pub async fn handle_bet_chunk(
 
         if !state.credit_players.contains_key(&bet.user_id) {
             let existing_debts = debts.entry(figures_date).or_insert_with(HashMap::new);
-            calculate_debt_by_bet(&bet, existing_debts, state);
+            calculate_debt_by_bet(&bet, existing_debts, state)?;
         }
 
         if let Some(detail) = extend_bet_with_details(state, &bet, provider).await {
@@ -167,8 +167,12 @@ fn calculate_debt_by_bet(
     bet: &Bet,
     existing_figures: &mut HashMap<UserID, CurrencyAmount>,
     state: &mut State,
-) {
-    for user in state.upline.get(&bet.user_id).unwrap() {
+) -> Result<()> {
+    for user in state
+        .upline
+        .get(&bet.user_id)
+        .with_context(|| format!("Not found upline for user: {}", &bet.user_id))?
+    {
         state
             .username_by_user_id
             .entry(user.id.clone())
@@ -177,11 +181,21 @@ fn calculate_debt_by_bet(
         let total_amount = bet
             .commission_amount
             .get(user.position as usize)
-            .expect("commission_amount to have values on valid positions (indexes)")
+            .with_context(|| {
+                format!(
+                    "commission_amount don't have values on valid positions (indexes) for bet {}",
+                    &bet.id
+                )
+            })?
             + bet
                 .funds_delta
                 .get(user.position as usize)
-                .expect("funds_delta to have values on valid positions (indexes)");
+                .with_context(|| {
+                    format!(
+                        "funds_delta don't have values on valid positions (indexes) in bet {}",
+                        &bet.id
+                    )
+                })?;
 
         existing_figures
             .entry(user.id.clone())
@@ -191,6 +205,8 @@ fn calculate_debt_by_bet(
                 amount: total_amount,
             });
     }
+
+    Ok(())
 }
 
 async fn extend_bet_with_details(

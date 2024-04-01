@@ -120,7 +120,7 @@ pub struct OpeningBalance {
     pub id: Uuid,
     pub amount: i64,
     pub creation_date: OffsetDateTime,
-    pub user_id: Uuid,
+    pub user_id: UserID,
 }
 
 pub async fn get_opening_balance_records(

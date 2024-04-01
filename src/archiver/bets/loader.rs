@@ -13,8 +13,8 @@ use crate::{
         query_helper::{get_archive_schema_name, get_bet_table_name, get_dynamic_table_name},
     },
     types::{
-        AmountByPosition, BetID, Currency, ProviderBetID, ProviderGameVendorID, Url, UserID,
-        Username,
+        AmountByPosition, BetID, Currency, ProviderBetID, ProviderGameVendorID,
+        ProviderGameVendorLabel, Url, UserID, Username,
     },
 };
 
@@ -66,8 +66,8 @@ pub async fn get_target_data_bench(
         "#,
         where_query.join(" OR ")
     ))
-    .bind(BetStatus::Active.to_string())
-    .bind(BetStatus::Pending.to_string())
+    .bind(BetStatus::Active.as_ref())
+    .bind(BetStatus::Pending.as_ref())
     .bind(yesterday)
     .bind(start_date)
     .fetch_all(pg_pool)
@@ -77,7 +77,7 @@ pub async fn get_target_data_bench(
     Ok(bets)
 }
 
-#[derive(FromRow)]
+#[derive(FromRow, Clone)]
 pub struct Bet {
     pub id: BetID,
     pub creation_date: OffsetDateTime,
@@ -100,7 +100,7 @@ pub struct Bet {
     pub transactions: Vec<String>,
     pub provider_bet_id: ProviderBetID,
     pub provider_game_vendor_id: ProviderGameVendorID,
-    pub provider_game_vendor_label: String,
+    pub provider_game_vendor_label: ProviderGameVendorLabel,
 }
 
 #[derive(Debug)]

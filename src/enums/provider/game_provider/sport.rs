@@ -2,7 +2,7 @@ use strum_macros::{AsRefStr, EnumString, VariantArray};
 
 use super::GameProvider;
 
-#[derive(AsRefStr, Debug, EnumString, VariantArray, Copy, Clone)]
+#[derive(AsRefStr, Debug, EnumString, VariantArray, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Sportsbook {
     #[strum(serialize = "single_live")]
     SingleLive,

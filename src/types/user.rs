@@ -5,7 +5,9 @@ use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
 use uuid::Uuid;
 
-#[derive(PartialEq, Eq, Clone, Debug, FromRow, sqlx::Type, Deserialize, Serialize, Display)]
+#[derive(
+    PartialEq, Eq, Clone, Debug, FromRow, sqlx::Type, Deserialize, Serialize, Display, Copy,
+)]
 #[sqlx(transparent)]
 pub struct UserID(pub Uuid);
 

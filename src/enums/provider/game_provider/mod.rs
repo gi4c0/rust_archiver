@@ -13,7 +13,7 @@ pub use online_casino_provider::*;
 pub use slot_provider::*;
 pub use sport::*;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum GameProvider {
     LiveCasino(LiveCasinoProvider),
     Slot(SlotProvider),

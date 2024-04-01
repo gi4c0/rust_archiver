@@ -9,7 +9,7 @@ use crate::{
     archiver::bets::loader::Bet,
     enums::{provider::ProviderGameKind, Language},
     helpers::crypto,
-    types::{Currency, ProviderBetID, ProviderGameLabel, ProviderGameVendorID, Url, Username},
+    types::{Currency, ProviderBetID, ProviderGameVendorLabel, ProviderGameVendorID, Url, Username},
 };
 
 #[derive(Deserialize, Debug)]
@@ -30,7 +30,7 @@ pub struct RoyalSlotGamingConfig {
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct RoyalSlotGamingGameConfig {
-    pub game_label: ProviderGameLabel,
+    pub game_label: ProviderGameVendorLabel,
     #[serde(rename = "gameID")]
     pub game_id: ProviderGameVendorID,
     // TODO: SELECT type AS "game_type"

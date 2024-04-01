@@ -1,5 +1,7 @@
 use time::Date;
 
+use crate::enums::provider::{GameProvider, Lottery};
+
 pub fn get_archive_schema_name(date: impl Into<Date>) -> String {
     format!("archive_{}", date.into().year())
 }
@@ -23,6 +25,11 @@ pub fn get_double_digit_month(date: Date) -> String {
     format!("0{month}")
 }
 
-pub fn get_bet_table_name(provider: impl AsRef<str>) -> String {
-    format!("bet_{}", provider.as_ref())
+pub fn get_bet_table_name(provider: GameProvider) -> String {
+    match provider {
+        GameProvider::Lottery(_) => "bet_lottery".to_string(),
+        _ => {
+            format!("bet_{}", provider.as_ref())
+        }
+    }
 }
