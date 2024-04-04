@@ -1,6 +1,6 @@
 use sqlx::PgPool;
 
-use crate::helpers::{provider::get_game_providers, query_helper::get_bet_table_name};
+use lib::helpers::{provider::get_game_providers, query_helper::get_bet_table_name};
 
 use super::create_index;
 

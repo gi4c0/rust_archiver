@@ -53,7 +53,7 @@ impl Connector {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Config {
     pub host: Url,

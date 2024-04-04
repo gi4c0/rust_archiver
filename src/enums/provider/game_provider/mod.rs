@@ -4,7 +4,7 @@ mod online_casino_provider;
 mod slot_provider;
 mod sport;
 
-use std::str::FromStr;
+use std::{fmt::Display, str::FromStr};
 
 use anyhow::{anyhow, Result};
 pub use live_casino_provider::*;
@@ -12,6 +12,9 @@ pub use lottery::*;
 pub use online_casino_provider::*;
 pub use slot_provider::*;
 pub use sport::*;
+use strum_macros::Display;
+
+use super::Product;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum GameProvider {
@@ -20,6 +23,18 @@ pub enum GameProvider {
     Lottery(Lottery),
     Sport(Sportsbook),
     OnlineCasino(OnlineCasinoProvider),
+}
+
+impl GameProvider {
+    pub fn get_product(&self) -> Product {
+        match self {
+            GameProvider::Slot(_) => Product::Slot,
+            GameProvider::OnlineCasino(_) => Product::OnlineCasino,
+            GameProvider::LiveCasino(_) => Product::LiveCasino,
+            GameProvider::Lottery(_) => Product::Lottery,
+            GameProvider::Sport(_) => Product::Sportsbook,
+        }
+    }
 }
 
 impl FromStr for GameProvider {
@@ -186,6 +201,18 @@ impl AsRef<str> for GameProvider {
             GameProvider::LiveCasino(p) => p.as_ref(),
             GameProvider::Sport(p) => p.as_ref(),
             GameProvider::Lottery(p) => p.as_ref(),
+        }
+    }
+}
+
+impl Display for GameProvider {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            GameProvider::Slot(p) => p.fmt(f),
+            GameProvider::OnlineCasino(p) => p.fmt(f),
+            GameProvider::LiveCasino(p) => p.fmt(f),
+            GameProvider::Sport(p) => p.fmt(f),
+            GameProvider::Lottery(p) => p.fmt(f),
         }
     }
 }

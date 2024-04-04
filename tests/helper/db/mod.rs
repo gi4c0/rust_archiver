@@ -1,12 +1,8 @@
+pub mod migrations;
+
 use std::env;
 
-use lib::{
-    db::{
-        maria_db_migrations::create_maria_db_tables,
-        pg_migrations::{create_pg_tables, seed},
-    },
-    helpers::{provider::get_game_providers, query_helper::get_bet_table_name},
-};
+use lib::helpers::{provider::get_game_providers, query_helper::get_bet_table_name};
 use sqlx::{
     mysql::{MySqlConnectOptions, MySqlPoolOptions},
     postgres::{PgConnectOptions, PgPoolOptions},
@@ -32,9 +28,7 @@ pub async fn create_pg_test_connection() -> PgPool {
         .await
         .expect("Failed to connect to PostgreSQL DB");
 
-    create_pg_tables(&conn).await;
     truncate_pg_tables(&conn).await;
-    seed(&conn).await;
 
     conn
 }
@@ -57,9 +51,6 @@ pub async fn create_maria_db_test_connection() -> MySqlPool {
         .await
         .expect("Failed to connect to MariaDB");
 
-    create_maria_db_tables(&conn).await;
-    truncate_maria_db_tables(&conn).await;
-
     conn
 }
 
@@ -70,6 +61,8 @@ async fn truncate_pg_tables(pg: &PgPool) {
         "bet_status".to_string(),
         "currency".to_string(),
         "bet_lottery".to_string(),
+        "provider".to_string(),
+        "provider_config".to_string(),
     ];
 
     let bet_table_names: Vec<String> = get_game_providers()

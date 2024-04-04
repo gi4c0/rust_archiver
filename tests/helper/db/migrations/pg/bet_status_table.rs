@@ -1,7 +1,7 @@
 use sqlx::{Execute, PgPool, Postgres, QueryBuilder};
-use strum::VariantNames;
 
-use crate::enums::bet::BetStatus;
+use lib::enums::bet::BetStatus;
+use strum::VariantNames;
 
 pub async fn create_bet_status_table(pg: &PgPool) {
     sqlx::query(

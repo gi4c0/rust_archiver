@@ -11,7 +11,7 @@ use crate::{
     types::{ProviderBetID, ProviderGameVendorID, Url, UserID},
 };
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PragmaticConfig {
     pub casino_name: String,

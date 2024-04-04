@@ -9,10 +9,12 @@ use crate::{
     archiver::bets::loader::Bet,
     enums::{provider::ProviderGameKind, Language},
     helpers::crypto,
-    types::{Currency, ProviderBetID, ProviderGameVendorLabel, ProviderGameVendorID, Url, Username},
+    types::{
+        Currency, ProviderBetID, ProviderGameVendorID, ProviderGameVendorLabel, Url, Username,
+    },
 };
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct RoyalSlotGamingConfig {
     pub web_id: String,

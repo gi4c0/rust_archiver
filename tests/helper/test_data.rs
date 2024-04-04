@@ -26,10 +26,17 @@ use lib::{
 use sqlx::{Execute, MySqlPool, PgPool, Postgres, QueryBuilder};
 use time::{macros::time, Date, Duration, OffsetDateTime};
 use uuid::Uuid;
+use wiremock::MockServer;
 
 use super::{
-    db::{create_archive_schema, drop_schema},
-    tables::{create_credit_debt_table, create_opening_balance_table},
+    archive_tables::{create_credit_debt_table, create_opening_balance_table},
+    db::{
+        create_archive_schema, drop_schema,
+        migrations::{
+            maria_db,
+            pg::{self, MockUrls},
+        },
+    },
     user::{save_balance, save_users_maria_db, save_users_pg, Balance, User},
 };
 
@@ -37,10 +44,53 @@ pub struct TestData {
     pub credit_player: User,
     pub cash_player: User,
     pub bets_by_provider: HashMap<GameProvider, Vec<Bet>>,
+    pub mock_servers: MockServers,
 }
 
-pub async fn prepare_data(pg_pool: &PgPool, maria_db: &MySqlPool, start_date: Date) -> TestData {
-    let (cash_player, credit_player) = generate_users_and_return_players(pg_pool, maria_db).await;
+pub struct MockServers {
+    pub sexy_mock_url: MockServer,
+    pub ameba_mock_url: MockServer,
+    pub dot_connections_mock_url: MockServer,
+    pub king_maker_mock_url: MockServer,
+    pub pragamtic_mock_url: MockServer,
+    pub royal_slot_gaming_mock_url: MockServer,
+}
+
+impl MockServers {
+    async fn new() -> Self {
+        Self {
+            sexy_mock_url: MockServer::start().await,
+            dot_connections_mock_url: MockServer::start().await,
+            king_maker_mock_url: MockServer::start().await,
+            pragamtic_mock_url: MockServer::start().await,
+            royal_slot_gaming_mock_url: MockServer::start().await,
+            ameba_mock_url: MockServer::start().await,
+        }
+    }
+
+    fn get_mock_urls(&self) -> MockUrls {
+        MockUrls {
+            sexy_mock_url: self.sexy_mock_url.uri(),
+            ameba_mock_url: self.ameba_mock_url.uri(),
+            dot_connections_mock_url: self.dot_connections_mock_url.uri(),
+            king_maker_mock_url: self.king_maker_mock_url.uri(),
+            pragamtic_mock_url: self.pragamtic_mock_url.uri(),
+            royal_slot_gaming_mock_url: self.royal_slot_gaming_mock_url.uri(),
+        }
+    }
+}
+
+pub async fn prepare_data(
+    pg_pool: &PgPool,
+    maria_db_pool: &MySqlPool,
+    start_date: Date,
+) -> TestData {
+    let mock_servers = MockServers::new().await;
+    pg::create_pg_tables_and_seed(pg_pool, mock_servers.get_mock_urls()).await;
+    maria_db::create_maria_db_tables(maria_db_pool).await;
+
+    let (cash_player, credit_player) =
+        generate_users_and_return_players(pg_pool, maria_db_pool).await;
 
     create_initial_balance(
         pg_pool,
@@ -60,6 +110,7 @@ pub async fn prepare_data(pg_pool: &PgPool, maria_db: &MySqlPool, start_date: Da
         credit_player,
         cash_player,
         bets_by_provider,
+        mock_servers,
     }
 }
 

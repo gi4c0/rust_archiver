@@ -1,6 +1,6 @@
 use sqlx::PgPool;
 
-use crate::{
+use lib::{
     enums::provider::{GameProvider, Lottery},
     helpers::query_helper::get_bet_table_name,
 };

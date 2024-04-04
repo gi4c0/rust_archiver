@@ -1,9 +1,19 @@
-use strum_macros::{AsRefStr, EnumString, VariantArray, VariantNames};
+use strum_macros::{AsRefStr, Display, EnumString, VariantArray, VariantNames};
 
 use super::GameProvider;
 
 #[derive(
-    AsRefStr, Debug, EnumString, VariantArray, VariantNames, Clone, Copy, PartialEq, Eq, Hash,
+    AsRefStr,
+    Debug,
+    EnumString,
+    VariantArray,
+    VariantNames,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    Display,
 )]
 pub enum LiveCasinoProvider {
     #[strum(serialize = "sexy")]

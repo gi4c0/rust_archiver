@@ -11,7 +11,7 @@ pub struct Connector {
     config: ArcadiaConfig,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ArcadiaConfig {
     pub api_url: Url,

@@ -1,8 +1,20 @@
-use strum_macros::{AsRefStr, EnumString, VariantArray};
+use strum_macros::{AsRefStr, Display, EnumString, VariantArray, VariantNames};
 
 use super::GameProvider;
 
-#[derive(AsRefStr, Debug, EnumString, VariantArray, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(
+    AsRefStr,
+    Debug,
+    EnumString,
+    VariantArray,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
+    VariantNames,
+    Display,
+)]
 pub enum SlotProvider {
     #[strum(serialize = "slot_xo_slot")]
     SlotXO,
