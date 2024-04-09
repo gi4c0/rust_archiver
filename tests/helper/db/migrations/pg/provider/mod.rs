@@ -1,19 +1,19 @@
 use sqlx::PgPool;
 
-use self::{config::create_provider_config_table, provider_table::create_provider_table};
-
 use super::MockUrls;
 
-mod config;
+mod product_table;
+mod provider_config;
+mod provider_game_config_table;
+mod provider_game_kind_table;
+pub mod provider_game_table;
 mod provider_table;
 
-pub async fn create_tables(pg: &PgPool) {
-    create_provider_table(pg).await;
-    create_provider_config_table(pg).await;
-}
-
-pub async fn seed(pg: &PgPool, mock_urls: MockUrls) {
-    provider_table::seed(pg).await;
-
-    config::seed(pg, mock_urls).await;
+pub async fn create_tables_and_seed(pg: &PgPool, mock_urls: MockUrls) {
+    product_table::create_table_and_seed(pg).await;
+    provider_table::create_table_and_seed(pg).await;
+    provider_config::create_table_and_seed(pg, mock_urls).await;
+    provider_game_kind_table::create_table_and_seed(pg).await;
+    provider_game_table::create_table_and_seed(pg).await;
+    provider_game_config_table::create_table_and_seed(pg).await;
 }

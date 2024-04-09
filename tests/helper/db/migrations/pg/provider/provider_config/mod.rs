@@ -1,7 +1,7 @@
 use lib::enums::provider::{LiveCasinoProvider, SlotProvider};
 use sqlx::{Execute, PgPool, Postgres, QueryBuilder};
 
-use crate::helper::migrations::pg::MockUrls;
+use crate::helper::db::migrations::pg::MockUrls;
 
 mod ameba;
 mod arcadia;
@@ -11,7 +11,7 @@ mod pragamtic;
 mod royal_slot_gaming;
 mod sexy;
 
-pub async fn create_provider_config_table(pg: &PgPool) {
+pub async fn create_table_and_seed(pg: &PgPool, mock_urls: MockUrls) {
     sqlx::query(
         r#"
             create table if not exists public.provider_config
@@ -28,11 +28,14 @@ pub async fn create_provider_config_table(pg: &PgPool) {
     .execute(pg)
     .await
     .expect("Failed to create PG 'provider_config' table");
+
+    seed(pg, mock_urls).await;
 }
 
-pub async fn seed(pg: &PgPool, mock_urls: MockUrls) {
+async fn seed(pg: &PgPool, mock_urls: MockUrls) {
     let mut provider_configs = vec![];
 
+    provider_configs.push(arcadia::get_provider_config(mock_urls.arcadia_mock_url));
     provider_configs.push(sexy::get_provider_config(mock_urls.sexy_mock_url));
     provider_configs.push(ameba::get_provider_config(mock_urls.ameba_mock_url));
     provider_configs.push(king_maker::get_provider_config(
@@ -55,7 +58,7 @@ pub async fn seed(pg: &PgPool, mock_urls: MockUrls) {
     }
 
     let mut query_builder: QueryBuilder<Postgres> =
-        QueryBuilder::new("INSERT INTO public.provider_config VALUES (game_provider, config)");
+        QueryBuilder::new("INSERT INTO public.provider_config (game_provider, config)");
 
     query_builder.push_values(provider_configs.into_iter(), |mut b, (config, provider)| {
         b.push_bind(provider.to_string()).push_bind(config);

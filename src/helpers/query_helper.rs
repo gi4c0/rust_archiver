@@ -1,6 +1,6 @@
 use time::Date;
 
-use crate::enums::provider::{GameProvider, Lottery};
+use crate::enums::provider::GameProvider;
 
 pub fn get_archive_schema_name(date: impl Into<Date>) -> String {
     format!("archive_{}", date.into().year())

@@ -7,11 +7,16 @@ use lib::consts::OPENING_BALANCE_TABLE_NAME;
 use lib::helpers::query_helper::{get_archive_schema_name, get_dynamic_table_name};
 use lib::helpers::State;
 use lib::types::UserID;
+use serde_json::json;
 use sqlx::PgPool;
 use time::{Duration, OffsetDateTime};
+use wiremock::matchers::{method, path, path_regex};
+use wiremock::{Mock, ResponseTemplate};
 
 use crate::helper::db::{create_maria_db_test_connection, create_pg_test_connection};
 use crate::helper::test_data::prepare_data;
+
+const RS_RESPONSE: &str = r#"LD/bLAL8sNY24+eRG5ZqDzbcL0EfmwpQHHRzAY8FnXE5FdT6AeBBsKfjiO/+YRv+ij/EKCp+X45hXPYDJ0XK5AQlZMrL3UGJOfGtKVZTu1If/lLkUnI5pg1HMZpfpgFAv6P5SPGJ3ZEOkDyf0+Lvp76iyoODlUmiT/a9LeqOpBsi8UtwUY84WZ0j+GQ1zcB87Faei6xwK49Zyavx/SlGkTn6p2RSVjMWigQjAxxj351U/2zJc/3/YAMBqKjieUTpS/wvygssUxloLqWRZbGh6XfPMbbEDlsl"#;
 
 #[tokio::test]
 async fn finds_last_opening_balance_and_creates_new_records() {
@@ -22,6 +27,75 @@ async fn finds_last_opening_balance_and_creates_new_records() {
     let start_date = OffsetDateTime::now_utc().date() - Duration::days(250);
 
     let test_data = prepare_data(&pg_pool, &maria_db_pool, start_date).await;
+
+    Mock::given(method("POST"))
+        .and(path("/getTransactionHistoryResult"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "status": "0000",
+            "desc": "Success",
+            "url": "http://localhost"
+        })))
+        .mount(&test_data.mock_servers.sexy_mock_server)
+        .await;
+
+    Mock::given(method("POST"))
+        .and(path("/dms/api"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "error_code": "OK",
+            "game_history_url": "http://localhost"
+        })))
+        .mount(&test_data.mock_servers.ameba_mock_server)
+        .await;
+
+    Mock::given(method("POST"))
+        .and(path("/GetGameResult"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "ErrorCode": 0,
+            "ErrorMessage": "Success",
+            "TimeStamp": "we don't care about god damn time! (and don't parse it :)",
+            "Data": {
+                "Url": "http://localhost"
+            }
+        })))
+        .mount(&test_data.mock_servers.arcadia_mock_server)
+        .await;
+
+    Mock::given(method("POST"))
+        .and(path("/dcs/getReplay"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "code": 1000,
+            "msg": "Success",
+            "data": {
+                "record": "http://localhost"
+            }
+        })))
+        .mount(&test_data.mock_servers.dot_connections_mock_server)
+        .await;
+
+    Mock::given(method("GET"))
+        .and(path_regex(r"^/history/providers/.+/rounds/.+/users/.+"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "urls": ["http://localhost"]
+        })))
+        .mount(&test_data.mock_servers.king_maker_mock_server)
+        .await;
+
+    Mock::given(method("POST"))
+        .and(path("/OpenHistoryExtended"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "description": "Success",
+            "error": 0,
+            "url": "http://localhost"
+        })))
+        .mount(&test_data.mock_servers.pragamtic_mock_server)
+        .await;
+
+    Mock::given(method("POST"))
+        .and(path("/Player/GetGameMinDetailURLTokenBySeq"))
+        .respond_with(ResponseTemplate::new(200).set_body_string(RS_RESPONSE))
+        .mount(&test_data.mock_servers.royal_slot_gaming_mock_server)
+        .await;
+
     let connectors = load_connectors(&pg_pool).await.unwrap();
 
     let mut state = State::new(connectors, pg_pool, maria_db_pool);

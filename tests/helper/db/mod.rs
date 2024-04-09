@@ -2,7 +2,6 @@ pub mod migrations;
 
 use std::env;
 
-use lib::helpers::{provider::get_game_providers, query_helper::get_bet_table_name};
 use sqlx::{
     mysql::{MySqlConnectOptions, MySqlPoolOptions},
     postgres::{PgConnectOptions, PgPoolOptions},
@@ -28,7 +27,7 @@ pub async fn create_pg_test_connection() -> PgPool {
         .await
         .expect("Failed to connect to PostgreSQL DB");
 
-    truncate_pg_tables(&conn).await;
+    drop_and_create_pg_public_schema(&conn).await;
 
     conn
 }
@@ -51,42 +50,38 @@ pub async fn create_maria_db_test_connection() -> MySqlPool {
         .await
         .expect("Failed to connect to MariaDB");
 
+    drop_and_create_maria_db_public_schema(&conn).await;
+
     conn
 }
 
-async fn truncate_pg_tables(pg: &PgPool) {
-    let table_names: Vec<String> = vec![
-        "balance".to_string(),
-        "user".to_string(),
-        "bet_status".to_string(),
-        "currency".to_string(),
-        "bet_lottery".to_string(),
-        "provider".to_string(),
-        "provider_config".to_string(),
-    ];
+async fn drop_and_create_pg_public_schema(pg: &PgPool) {
+    sqlx::query("DROP SCHEMA public CASCADE;")
+        .execute(pg)
+        .await
+        .expect("Failed to drop pg public schema");
 
-    let bet_table_names: Vec<String> = get_game_providers()
-        .into_iter()
-        .map(get_bet_table_name)
-        .collect();
+    sqlx::query("CREATE SCHEMA public;")
+        .execute(pg)
+        .await
+        .expect("Failed to create pg public schema");
 
-    for table in [table_names, bet_table_names].concat() {
-        sqlx::query(&format!("TRUNCATE TABLE public.{table} CASCADE;"))
-            .execute(pg)
-            .await
-            .expect("Failed to truncate table");
-    }
+    sqlx::query(r#"CREATE EXTENSION IF NOT EXISTS "uuid-ossp";"#)
+        .execute(pg)
+        .await
+        .expect("Failed to create pg uuid extension");
 }
 
-async fn truncate_maria_db_tables(pg: &MySqlPool) {
-    let table_names = vec!["user_card", "bet", "bet_archive_details"];
+async fn drop_and_create_maria_db_public_schema(maria_db: &MySqlPool) {
+    sqlx::query("DROP DATABASE public;")
+        .execute(maria_db)
+        .await
+        .expect("Failed to drop maria_db public schema");
 
-    for table in table_names {
-        sqlx::query(&format!("TRUNCATE TABLE public.{table};"))
-            .execute(pg)
-            .await
-            .expect("Failed to truncate table");
-    }
+    sqlx::query("CREATE DATABASE public;")
+        .execute(maria_db)
+        .await
+        .expect("Failed to create maria_db public schema");
 }
 
 pub async fn drop_schema(pg: &PgPool, schema_name: &str) {

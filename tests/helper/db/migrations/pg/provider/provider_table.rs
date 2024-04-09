@@ -2,7 +2,7 @@ use lib::enums::provider::{GameProvider, LiveCasinoProvider, OnlineCasinoProvide
 use sqlx::{Execute, PgPool, Postgres, QueryBuilder};
 use strum::VariantArray;
 
-pub async fn create_provider_table(pg: &PgPool) {
+pub async fn create_table_and_seed(pg: &PgPool) {
     sqlx::query(
         r#"
             create table if not exists public.provider
@@ -23,9 +23,11 @@ pub async fn create_provider_table(pg: &PgPool) {
     .execute(pg)
     .await
     .expect("Failed to create PG 'provider_config' table");
+
+    seed(pg).await;
 }
 
-pub async fn seed(pg: &PgPool) {
+async fn seed(pg: &PgPool) {
     let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
         r#"
             INSERT INTO public.provider (
@@ -58,7 +60,7 @@ pub async fn seed(pg: &PgPool) {
     query_builder.push_values(providers.into_iter(), |mut b, row| {
         b.push_bind(row.to_string())
             .push_bind(row.to_string())
-            .push_bind(row.to_string())
+            .push_bind(row.get_product().to_string())
             .push_bind(true)
             .push_bind(1)
             .push_bind(["THB".to_string()]);

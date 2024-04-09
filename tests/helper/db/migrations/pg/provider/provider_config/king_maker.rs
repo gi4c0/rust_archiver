@@ -10,7 +10,7 @@ pub fn get_provider_config(mock_url: String) -> (String, GameProvider) {
         game_provider_code: "code".to_string(),
         client_id: "id".to_string(),
         ip_list: vec![],
-        api_url: Url(mock_url),
+        api_url: Url(mock_url.clone()),
         lobby_url: Url(mock_url),
     };
 

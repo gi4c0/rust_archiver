@@ -3,7 +3,7 @@ use sqlx::{Execute, PgPool, Postgres, QueryBuilder};
 use lib::enums::bet::BetStatus;
 use strum::VariantNames;
 
-pub async fn create_bet_status_table(pg: &PgPool) {
+pub async fn create_table_and_seed(pg: &PgPool) {
     sqlx::query(
         r#"
             create table if not exists public.bet_status
@@ -20,9 +20,11 @@ pub async fn create_bet_status_table(pg: &PgPool) {
     .execute(pg)
     .await
     .expect("Failed to create PG 'balance' table");
+
+    seed(pg).await;
 }
 
-pub async fn seed(pg: &PgPool) {
+async fn seed(pg: &PgPool) {
     let mut query_builder: QueryBuilder<Postgres> =
         QueryBuilder::new("INSERT INTO public.bet_status (value, label)");
 

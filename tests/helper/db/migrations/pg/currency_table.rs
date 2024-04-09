@@ -1,6 +1,6 @@
 use sqlx::PgPool;
 
-pub async fn create_bet_currency_table(pg: &PgPool) {
+pub async fn create_table_and_seed(pg: &PgPool) {
     sqlx::query(
         r#"
             create table if not exists public.currency
@@ -18,9 +18,11 @@ pub async fn create_bet_currency_table(pg: &PgPool) {
     .execute(pg)
     .await
     .expect("Failed to create PG 'currency' table");
+
+    seed(pg).await;
 }
 
-pub async fn seed(pg: &PgPool) {
+async fn seed(pg: &PgPool) {
     sqlx::query(
         r#"
             INSERT INTO public.currency (label, rate, active, ordering, is_default)

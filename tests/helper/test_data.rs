@@ -34,7 +34,11 @@ use super::{
         create_archive_schema, drop_schema,
         migrations::{
             maria_db,
-            pg::{self, MockUrls},
+            pg::{
+                self,
+                provider::provider_game_table::{PROVIDER_GAME_LABEL, PROVIDER_VENDOR_ID},
+                MockUrls,
+            },
         },
     },
     user::{save_balance, save_users_maria_db, save_users_pg, Balance, User},
@@ -48,34 +52,37 @@ pub struct TestData {
 }
 
 pub struct MockServers {
-    pub sexy_mock_url: MockServer,
-    pub ameba_mock_url: MockServer,
-    pub dot_connections_mock_url: MockServer,
-    pub king_maker_mock_url: MockServer,
-    pub pragamtic_mock_url: MockServer,
-    pub royal_slot_gaming_mock_url: MockServer,
+    pub sexy_mock_server: MockServer,
+    pub ameba_mock_server: MockServer,
+    pub arcadia_mock_server: MockServer,
+    pub dot_connections_mock_server: MockServer,
+    pub king_maker_mock_server: MockServer,
+    pub pragamtic_mock_server: MockServer,
+    pub royal_slot_gaming_mock_server: MockServer,
 }
 
 impl MockServers {
     async fn new() -> Self {
         Self {
-            sexy_mock_url: MockServer::start().await,
-            dot_connections_mock_url: MockServer::start().await,
-            king_maker_mock_url: MockServer::start().await,
-            pragamtic_mock_url: MockServer::start().await,
-            royal_slot_gaming_mock_url: MockServer::start().await,
-            ameba_mock_url: MockServer::start().await,
+            sexy_mock_server: MockServer::start().await,
+            dot_connections_mock_server: MockServer::start().await,
+            king_maker_mock_server: MockServer::start().await,
+            pragamtic_mock_server: MockServer::start().await,
+            royal_slot_gaming_mock_server: MockServer::start().await,
+            ameba_mock_server: MockServer::start().await,
+            arcadia_mock_server: MockServer::start().await,
         }
     }
 
     fn get_mock_urls(&self) -> MockUrls {
         MockUrls {
-            sexy_mock_url: self.sexy_mock_url.uri(),
-            ameba_mock_url: self.ameba_mock_url.uri(),
-            dot_connections_mock_url: self.dot_connections_mock_url.uri(),
-            king_maker_mock_url: self.king_maker_mock_url.uri(),
-            pragamtic_mock_url: self.pragamtic_mock_url.uri(),
-            royal_slot_gaming_mock_url: self.royal_slot_gaming_mock_url.uri(),
+            sexy_mock_url: self.sexy_mock_server.uri(),
+            arcadia_mock_url: self.arcadia_mock_server.uri(),
+            ameba_mock_url: self.ameba_mock_server.uri(),
+            dot_connections_mock_url: self.dot_connections_mock_server.uri(),
+            king_maker_mock_url: self.king_maker_mock_server.uri(),
+            pragamtic_mock_url: self.pragamtic_mock_server.uri(),
+            royal_slot_gaming_mock_url: self.royal_slot_gaming_mock_server.uri(),
         }
     }
 }
@@ -189,7 +196,11 @@ async fn create_bets(
     let providers = vec![
         GameProvider::LiveCasino(LiveCasinoProvider::Sexy),
         GameProvider::Slot(SlotProvider::Ameba),
+        GameProvider::OnlineCasino(OnlineCasinoProvider::Arcadia),
+        GameProvider::Slot(SlotProvider::Relax), // dot connections
         GameProvider::OnlineCasino(OnlineCasinoProvider::Kingmaker),
+        GameProvider::Slot(SlotProvider::Pragmatic),
+        GameProvider::Slot(SlotProvider::RoyalSlotGaming),
         GameProvider::Lottery(Lottery::StockDowJones),
         GameProvider::Sport(Sportsbook::SingleNonLive),
     ];
@@ -226,9 +237,13 @@ async fn create_bets(
                         provider_bet_id: ProviderBetID(Uuid::new_v4().to_string()),
                         commission_amount: [0, 0, 0, 0, 0, 0, 1],
                         commission_percent: [0, 1, 2, 3, 4, 5, 6],
-                        provider_game_vendor_id: ProviderGameVendorID("Game ID".to_string()),
+                        provider_game_vendor_id: ProviderGameVendorID(
+                            // Need to be the same as provider game that was seeded in migrations
+                            // to match then game in connector during 'get bet history' process
+                            PROVIDER_VENDOR_ID.to_string(),
+                        ),
                         provider_game_vendor_label: ProviderGameVendorLabel(
-                            "Game name".to_string(),
+                            PROVIDER_GAME_LABEL.to_string(),
                         ),
                     });
             }

@@ -1,6 +1,6 @@
 use lib::{
     connectors::arcadia,
-    enums::provider::{GameProvider, SlotProvider},
+    enums::provider::{GameProvider, OnlineCasinoProvider},
     types::Url,
 };
 
@@ -12,7 +12,7 @@ pub fn get_provider_config(mock_url: String) -> (String, GameProvider) {
     };
 
     (
-        serde_json::to_string(&config).expect("Failed to stringify ameba config"),
-        SlotProvider::Ameba.into_game_provider(),
+        serde_json::to_string(&config).expect("Failed to stringify arcadia config"),
+        OnlineCasinoProvider::Arcadia.into_game_provider(),
     )
 }

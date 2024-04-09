@@ -138,7 +138,8 @@ async fn get_provider_configs(pg_pool: &PgPool) -> Result<Vec<ProviderConfig>> {
             WHERE game_provider IN (
                 'sexy',
                 'ameba',
-                'king_maker',
+                'arcadia',
+                'kingmaker',
                 'pragmatic',
                 'royal_slot_gaming',
                 'relax'

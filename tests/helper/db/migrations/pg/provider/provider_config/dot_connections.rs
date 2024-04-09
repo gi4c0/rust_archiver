@@ -1,6 +1,6 @@
 use lib::{
     connectors,
-    enums::provider::{GameProvider, OnlineCasinoProvider},
+    enums::provider::{GameProvider, SlotProvider},
     types::Url,
 };
 
@@ -15,6 +15,6 @@ pub fn get_provider_config(mock_url: String) -> (String, GameProvider) {
 
     (
         serde_json::to_string(&config).unwrap(),
-        OnlineCasinoProvider::Kingmaker.into_game_provider(),
+        SlotProvider::Relax.into_game_provider(),
     )
 }

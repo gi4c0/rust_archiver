@@ -29,13 +29,13 @@ pub struct RoyalSlotGamingConfig {
     pub ip_list: Vec<Ipv4Addr>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RoyalSlotGamingGameConfig {
     pub game_label: ProviderGameVendorLabel,
     #[serde(rename = "gameID")]
     pub game_id: ProviderGameVendorID,
-    // TODO: SELECT type AS "game_type"
+    #[serde(rename = "type")]
     pub game_type: ProviderGameKind,
 }
 
