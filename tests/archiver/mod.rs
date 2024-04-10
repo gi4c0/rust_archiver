@@ -1,7 +1,7 @@
 use claims::assert_ok;
 use dotenvy::dotenv;
-use lib::archiver::opening_balance::create_opening_balance_records;
 use lib::archiver::opening_balance::loader::get_last_opening_balance_creation_date;
+use lib::archiver::run;
 use lib::connectors::load_connectors;
 use lib::consts::OPENING_BALANCE_TABLE_NAME;
 use lib::helpers::query_helper::{get_archive_schema_name, get_dynamic_table_name};
@@ -21,10 +21,11 @@ const RS_RESPONSE: &str = r#"LD/bLAL8sNY24+eRG5ZqDzbcL0EfmwpQHHRzAY8FnXE5FdT6AeB
 #[tokio::test]
 async fn finds_last_opening_balance_and_creates_new_records() {
     dotenv().unwrap();
+    env_logger::init();
 
     let pg_pool = create_pg_test_connection().await;
     let maria_db_pool = create_maria_db_test_connection().await;
-    let start_date = OffsetDateTime::now_utc().date() - Duration::days(250);
+    let start_date = OffsetDateTime::now_utc().date() - Duration::days(1);
 
     let test_data = prepare_data(&pg_pool, &maria_db_pool, start_date).await;
 
@@ -35,6 +36,7 @@ async fn finds_last_opening_balance_and_creates_new_records() {
             "desc": "Success",
             "url": "http://localhost"
         })))
+        .expect(1..)
         .mount(&test_data.mock_servers.sexy_mock_server)
         .await;
 
@@ -44,6 +46,7 @@ async fn finds_last_opening_balance_and_creates_new_records() {
             "error_code": "OK",
             "game_history_url": "http://localhost"
         })))
+        .expect(1..)
         .mount(&test_data.mock_servers.ameba_mock_server)
         .await;
 
@@ -57,6 +60,7 @@ async fn finds_last_opening_balance_and_creates_new_records() {
                 "Url": "http://localhost"
             }
         })))
+        .expect(1..)
         .mount(&test_data.mock_servers.arcadia_mock_server)
         .await;
 
@@ -69,6 +73,7 @@ async fn finds_last_opening_balance_and_creates_new_records() {
                 "record": "http://localhost"
             }
         })))
+        .expect(1..)
         .mount(&test_data.mock_servers.dot_connections_mock_server)
         .await;
 
@@ -77,6 +82,7 @@ async fn finds_last_opening_balance_and_creates_new_records() {
         .respond_with(ResponseTemplate::new(200).set_body_json(json!({
             "urls": ["http://localhost"]
         })))
+        .expect(1..)
         .mount(&test_data.mock_servers.king_maker_mock_server)
         .await;
 
@@ -87,20 +93,21 @@ async fn finds_last_opening_balance_and_creates_new_records() {
             "error": 0,
             "url": "http://localhost"
         })))
+        .expect(1..)
         .mount(&test_data.mock_servers.pragamtic_mock_server)
         .await;
 
     Mock::given(method("POST"))
         .and(path("/Player/GetGameMinDetailURLTokenBySeq"))
         .respond_with(ResponseTemplate::new(200).set_body_string(RS_RESPONSE))
+        .expect(1..)
         .mount(&test_data.mock_servers.royal_slot_gaming_mock_server)
         .await;
 
     let connectors = load_connectors(&pg_pool).await.unwrap();
-
     let mut state = State::new(connectors, pg_pool, maria_db_pool);
 
-    let result = create_opening_balance_records(&mut state).await;
+    let result = run(&mut state).await;
     assert_ok!(result);
 
     let credit_user_ids = get_credit_players_ids(&state.pg).await;

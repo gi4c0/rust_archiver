@@ -3,7 +3,7 @@ use sqlx::PgPool;
 
 use crate::helper::db::migrations::pg::create_index;
 
-pub const PROVIDER_VENDOR_ID: &str = "Game_ID #1";
+pub const PROVIDER_VENDOR_ID: &str = "1";
 pub const PROVIDER_GAME_LABEL: &str = "Game label";
 
 pub async fn create_table_and_seed(pg: &PgPool) {

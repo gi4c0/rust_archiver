@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use anyhow::{Context, Result};
 use sqlx::{
     prelude::FromRow, Execute, MySql, MySqlPool, PgPool, Postgres, QueryBuilder, Transaction,
@@ -29,10 +31,10 @@ pub async fn get_target_data_bench(
     let mut where_query = vec!["last_status_change < $3"];
 
     if start_date.is_some() {
-        where_query.push("last_status_change > $4");
+        where_query.push("last_status_change >= $4");
     }
 
-    let bets: Vec<Bet> = sqlx::query_as(&format!(
+    let raw_bets: Vec<RawBet> = sqlx::query_as(&format!(
         r#"
             SELECT
                 id,
@@ -64,17 +66,80 @@ pub async fn get_target_data_bench(
             AND
                 ({})
         "#,
-        where_query.join(" OR ")
+        where_query.join(" AND ")
     ))
-    .bind(BetStatus::Active.as_ref())
-    .bind(BetStatus::Pending.as_ref())
+    .bind(BetStatus::Active.to_string())
+    .bind(BetStatus::Pending.to_string())
     .bind(yesterday)
     .bind(start_date)
     .fetch_all(pg_pool)
     .await
     .with_context(|| format!("Failed to fetch bet chunk from '{table}'"))?;
 
+    let mut bets = vec![];
+
+    for bet in raw_bets {
+        bets.push(bet.try_into_bet()?);
+    }
+
     Ok(bets)
+}
+
+#[derive(FromRow, Clone)]
+struct RawBet {
+    id: BetID,
+    creation_date: OffsetDateTime,
+    last_status_change: OffsetDateTime,
+    stake: i64,
+    valid_amount: Option<i64>,
+    wl: Option<i64>,
+    user_id: UserID,
+    username: Username,
+    ip: String,
+    status: String,
+    currency: Currency,
+    pt_by_position: AmountByPosition,
+    commission_percent: AmountByPosition,
+    commission_amount: AmountByPosition,
+    funds_delta: AmountByPosition,
+    details: Option<String>,
+    replay: String,
+    transaction_ids: Vec<String>,
+    transactions: Vec<String>,
+    provider_bet_id: ProviderBetID,
+    provider_game_vendor_id: ProviderGameVendorID,
+    provider_game_vendor_label: ProviderGameVendorLabel,
+}
+
+impl RawBet {
+    fn try_into_bet(self) -> Result<Bet> {
+        let bet = Bet {
+            status: BetStatus::from_str(&self.status).context("Invalid status from DB")?,
+            id: self.id,
+            creation_date: self.creation_date,
+            last_status_change: self.last_status_change,
+            stake: self.stake,
+            valid_amount: self.valid_amount,
+            wl: self.wl,
+            user_id: self.user_id,
+            username: self.username,
+            ip: self.ip,
+            currency: self.currency,
+            pt_by_position: self.pt_by_position,
+            commission_percent: self.commission_percent,
+            commission_amount: self.commission_amount,
+            funds_delta: self.funds_delta,
+            details: self.details,
+            replay: self.replay,
+            transaction_ids: self.transaction_ids,
+            transactions: self.transactions,
+            provider_bet_id: self.provider_bet_id,
+            provider_game_vendor_id: self.provider_game_vendor_id,
+            provider_game_vendor_label: self.provider_game_vendor_label,
+        };
+
+        Ok(bet)
+    }
 }
 
 #[derive(FromRow, Clone)]
@@ -250,7 +315,9 @@ pub async fn insert_bet_details_to_details_table(
     ));
 
     query_builder.push_values(details.into_iter(), |mut b, r| {
-        b.push_bind(r.id).push_bind(r.details).push_bind(r.replay);
+        b.push_bind(r.id.to_string())
+            .push_bind(r.details)
+            .push_bind(r.replay);
     });
 
     let mut query = query_builder.build();

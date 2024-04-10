@@ -44,9 +44,17 @@ async fn seed(pg: &PgPool, mock_urls: MockUrls) {
     provider_configs.push(royal_slot_gaming::get_provider_config(
         mock_urls.royal_slot_gaming_mock_url,
     ));
-    provider_configs.push(dot_connections::get_provider_config(
-        mock_urls.dot_connections_mock_url,
-    ));
+
+    let dot_connections_config_str =
+        dot_connections::get_provider_config(mock_urls.dot_connections_mock_url);
+
+    for dot_connections_provider in [
+        SlotProvider::Relax.into_game_provider(),
+        SlotProvider::YGG.into_game_provider(),
+        SlotProvider::Hacksaw.into_game_provider(),
+    ] {
+        provider_configs.push((dot_connections_config_str.clone(), dot_connections_provider));
+    }
 
     let pragmatic_config = pragamtic::get_provider_config(mock_urls.pragamtic_mock_url);
 

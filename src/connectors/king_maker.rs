@@ -35,7 +35,7 @@ impl Connector {
     ) -> anyhow::Result<SuccessHistoryResponse> {
         let result: Response<SuccessHistoryResponse> = Client::new()
             .get(format!(
-                "{}history/providers/{}/rounds/{round_id}/users/{username}",
+                "{}/history/providers/{}/rounds/{round_id}/users/{username}",
                 self.config.api_url, self.config.game_provider_code
             ))
             .send()
@@ -63,7 +63,7 @@ impl Connector {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 #[serde(untagged)]
 enum Response<T> {
     Fail {
@@ -74,7 +74,7 @@ enum Response<T> {
     Success(T),
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct SuccessHistoryResponse {
     pub urls: Vec<Url>,
 }

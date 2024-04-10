@@ -198,9 +198,9 @@ struct RoundHistoryPayload {
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "PascalCase")]
 struct ApiResponse<T> {
-    error_code: i64,
-    error_message: String,
-    timestamp: u64,
+    _error_code: i64,
+    _error_message: String,
+    _timestamp: u64,
     data: Option<T>,
 }
 

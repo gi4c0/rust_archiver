@@ -52,7 +52,7 @@ impl Connector {
         )));
 
         let response: BetRoundHistoryResponse = reqwest::Client::new()
-            .post(format!("{}/OpenHistoryExtended/", self.config.api_url))
+            .post(format!("{}/OpenHistoryExtended", self.config.api_url))
             .form(&payload)
             .send()
             .await

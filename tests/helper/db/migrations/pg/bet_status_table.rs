@@ -1,7 +1,7 @@
 use sqlx::{Execute, PgPool, Postgres, QueryBuilder};
 
 use lib::enums::bet::BetStatus;
-use strum::VariantNames;
+use strum::VariantArray;
 
 pub async fn create_table_and_seed(pg: &PgPool) {
     sqlx::query(
@@ -19,7 +19,7 @@ pub async fn create_table_and_seed(pg: &PgPool) {
     )
     .execute(pg)
     .await
-    .expect("Failed to create PG 'balance' table");
+    .expect("Failed to create PG 'bet_status' table");
 
     seed(pg).await;
 }
@@ -29,8 +29,8 @@ async fn seed(pg: &PgPool) {
         QueryBuilder::new("INSERT INTO public.bet_status (value, label)");
 
     query_builder.push_values(BetStatus::VARIANTS.iter(), |mut b, &item| {
-        b.push_bind(item)
-            .push_bind(capitalize_first_latter(&item.to_lowercase()));
+        b.push_bind(item.to_string())
+            .push_bind(capitalize_first_latter(&item.to_string().to_lowercase()));
     });
 
     query_builder.push(r#" ON CONFLICT DO NOTHING "#);

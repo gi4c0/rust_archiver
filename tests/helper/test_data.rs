@@ -19,8 +19,8 @@ use lib::{
         query_helper::{get_archive_schema_name, get_bet_table_name},
     },
     types::{
-        BetID, Currency, ProviderBetID, ProviderGameVendorID, ProviderGameVendorLabel, UserID,
-        Username,
+        BetID, Currency, ProviderBetID, ProviderGameVendorID, ProviderGameVendorLabel, Upline,
+        UserID, Username,
     },
 };
 use sqlx::{Execute, MySqlPool, PgPool, Postgres, QueryBuilder};
@@ -124,6 +124,7 @@ pub async fn prepare_data(
 /// Generate upline, save it and return player
 async fn generate_users_and_return_players(pg_pool: &PgPool, maria_db: &MySqlPool) -> (User, User) {
     let mut agents: Vec<User> = vec![];
+    let mut upline: Upline = [None, None, None, None, None, None, None];
 
     let agent_position_username = [
         ("AMB", PositionEnum::Owner),
@@ -136,14 +137,14 @@ async fn generate_users_and_return_players(pg_pool: &PgPool, maria_db: &MySqlPoo
         let current_username;
         let mut parent_id = None;
 
-        if position == PositionEnum::Owner {
+        if position == PositionEnum::Owner || position == PositionEnum::Company {
             current_username = username.to_string();
         } else {
             current_username = format!("{}{}", agents[i - 1].username, username);
             parent_id = agents[i - 1].parent_id.clone();
         }
 
-        agents.push(User {
+        let agent = User {
             id: UserID(Uuid::new_v4()),
             salt: "".to_string(),
             position,
@@ -154,16 +155,20 @@ async fn generate_users_and_return_players(pg_pool: &PgPool, maria_db: &MySqlPoo
             parent_id,
             activated_at: Some(OffsetDateTime::now_utc()),
             registered_at: Some(OffsetDateTime::now_utc()),
-        });
+        };
+
+        upline[position as usize] = Some(agent.id);
+        agents.push(agent);
     }
 
     let parent_agent = agents.last().unwrap();
     let mut players: Vec<User> = vec![];
+    let mut player_uplines: Vec<Upline> = vec![];
 
     for i in 0..3 {
         let username = Username(format!("{}00000{i}", parent_agent.username));
 
-        players.push(User {
+        let player = User {
             id: UserID(Uuid::new_v4()),
             salt: "".to_string(),
             position: PositionEnum::Player,
@@ -174,7 +179,13 @@ async fn generate_users_and_return_players(pg_pool: &PgPool, maria_db: &MySqlPoo
             parent_id: Some(parent_agent.id),
             activated_at: Some(OffsetDateTime::now_utc()),
             registered_at: Some(OffsetDateTime::now_utc()),
-        })
+        };
+
+        let mut player_upline = upline.clone();
+        player_upline[PositionEnum::Player as usize] = Some(player.id);
+
+        player_uplines.push(player_upline);
+        players.push(player);
     }
 
     // Imitate not activated user for tests
@@ -183,6 +194,7 @@ async fn generate_users_and_return_players(pg_pool: &PgPool, maria_db: &MySqlPoo
     let all_users = [agents, players.clone()].concat();
 
     save_users_pg(pg_pool, all_users.clone()).await;
+    save_uplines(pg_pool, player_uplines).await;
     save_users_maria_db(maria_db, all_users).await;
 
     (players.pop().unwrap(), players.pop().unwrap())
@@ -208,11 +220,21 @@ async fn create_bets(
     let mut bets_by_provider: HashMap<GameProvider, Vec<Bet>> = HashMap::new();
 
     for provider in providers {
+        let mut rs_provider_bet_id = 1;
         let mut current_iteration_date = OffsetDateTime::new_utc(start_date, time!(0:00));
         let now = OffsetDateTime::now_utc();
 
         while current_iteration_date <= now {
             for user in users {
+                // We need numbers as provider bet id for royal_slot_gaming
+                let provider_bet_id =
+                    if provider == GameProvider::Slot(SlotProvider::RoyalSlotGaming) {
+                        rs_provider_bet_id += 1;
+                        ProviderBetID(rs_provider_bet_id.to_string())
+                    } else {
+                        ProviderBetID(Uuid::new_v4().to_string())
+                    };
+
                 bets_by_provider
                     .entry(provider)
                     .or_insert(vec![])
@@ -230,11 +252,11 @@ async fn create_bets(
                         currency: Currency("THB".to_string()),
                         funds_delta: [0, 0, 0, 0, 0, 0, 1],
                         valid_amount: Some(2),
-                        transactions: vec![],
+                        transactions: vec![r#"{ "provider": "lol" }"#.to_string()],
                         creation_date: current_iteration_date - Duration::seconds(1),
                         pt_by_position: [0, 0, 0, 0, 0, 0, 1],
                         transaction_ids: vec!["1".to_string(), "2".to_string()],
-                        provider_bet_id: ProviderBetID(Uuid::new_v4().to_string()),
+                        provider_bet_id,
                         commission_amount: [0, 0, 0, 0, 0, 0, 1],
                         commission_percent: [0, 1, 2, 3, 4, 5, 6],
                         provider_game_vendor_id: ProviderGameVendorID(
@@ -320,6 +342,10 @@ async fn insert_bets(pg_pool: &PgPool, mut bets: Vec<Bet>, provider: GameProvide
     let table = get_bet_table_name(provider);
 
     let mut chunk = 100;
+
+    if chunk > bets.len() {
+        chunk = bets.len();
+    }
 
     loop {
         let mut lottery_kind = "";
@@ -407,4 +433,27 @@ async fn insert_bets(pg_pool: &PgPool, mut bets: Vec<Bet>, provider: GameProvide
             chunk = bets.len();
         }
     }
+}
+
+async fn save_uplines(pg: &PgPool, player_upline: Vec<Upline>) {
+    let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
+        r#"
+            INSERT INTO public.user_upline (
+                user_id,
+                upline_ids
+            )
+        "#,
+    );
+
+    query_builder.push_values(player_upline.into_iter(), |mut b, row| {
+        b.push_bind(row[PositionEnum::Player as usize])
+            .push_bind(row);
+    });
+
+    let mut query = query_builder.build();
+
+    sqlx::query_with(query.sql(), query.take_arguments().unwrap())
+        .execute(pg)
+        .await
+        .expect("Failed to insert players' upline");
 }

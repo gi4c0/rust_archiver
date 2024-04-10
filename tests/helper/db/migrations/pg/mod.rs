@@ -12,6 +12,7 @@ mod currency_table;
 mod lottery_bet_table;
 pub mod provider;
 mod user_table;
+mod user_upline_table;
 
 pub struct MockUrls {
     pub sexy_mock_url: String,
@@ -25,6 +26,7 @@ pub struct MockUrls {
 
 pub async fn create_pg_tables_and_seed(pg: &PgPool, mock_urls: MockUrls) {
     create_user_table(pg).await;
+    user_upline_table::create_table(pg).await;
     create_balance_table(pg).await;
     bet_status_table::create_table_and_seed(pg).await;
     currency_table::create_table_and_seed(pg).await;

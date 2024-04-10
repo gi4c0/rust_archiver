@@ -6,7 +6,7 @@ use std::hash::Hash;
 use uuid::Uuid;
 
 #[derive(
-    PartialEq, Eq, Clone, Debug, FromRow, sqlx::Type, Deserialize, Serialize, Display, AsRef,
+    PartialEq, Eq, Clone, Copy, Debug, FromRow, sqlx::Type, Deserialize, Serialize, Display, AsRef,
 )]
 #[sqlx(transparent)]
 pub struct BetID(pub Uuid);

@@ -51,7 +51,6 @@ pub async fn run(state: &mut State) -> anyhow::Result<()> {
 
         loop {
             let bet_chunk = get_target_data_bench(&state.pg, &runtime_table_name, None).await?;
-
             if bet_chunk.len() == 0 {
                 continue 'provider_bet_for;
             }
@@ -79,6 +78,7 @@ pub async fn run(state: &mut State) -> anyhow::Result<()> {
 
 pub async fn launch() {
     dotenvy::dotenv().expect("Failed to parse .env");
+    env_logger::init();
 
     let pg = db::create_pg_connection().await;
     let mysql = db::create_mysql_connection().await;

@@ -38,3 +38,5 @@ impl From<Uuid> for UserID {
 #[derive(PartialEq, Eq, Clone, Debug, FromRow, sqlx::Type, Deserialize, Serialize)]
 #[sqlx(transparent)]
 pub struct Currency(pub String);
+
+pub type Upline = [Option<UserID>; 7];

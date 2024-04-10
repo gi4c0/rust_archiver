@@ -47,16 +47,16 @@ pub async fn handle_bet_chunk(
     let mut bet_details = vec![];
 
     for bet in bets {
-        bet_ids.push(bet.id.clone());
+        bet_ids.push(bet.id);
 
         state
             .username_by_user_id
-            .entry(bet.user_id.clone())
+            .entry(bet.user_id)
             .or_insert(bet.username.clone());
 
         if !state.upline.contains_key(&bet.user_id) {
             let upline = get_upline(&bet.user_id, pg_transaction).await?;
-            state.upline.insert(bet.user_id.clone(), upline);
+            state.upline.insert(bet.user_id, upline);
         }
 
         let figures_date = get_figures_date(bet.last_status_change);
