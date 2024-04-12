@@ -296,7 +296,7 @@ async fn create_initial_balance(pg_pool: &PgPool, users: &[User], start_date: Da
         .iter()
         .map(|u| OpeningBalance {
             id: Uuid::new_v4(),
-            amount: 1000,
+            amount: 0,
             creation_date: get_hong_kong_11_hours_from_date(start_date),
             user_id: u.id,
         })

@@ -65,6 +65,8 @@ pub async fn get_target_data_bench(
                 status NOT IN ($1, $2)
             AND
                 ({})
+            ORDER BY last_status_change
+            LIMIT 100
         "#,
         where_query.join(" AND ")
     ))

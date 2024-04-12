@@ -110,21 +110,21 @@ async fn save_all(
     let current_start_of_month = OffsetDateTime::now_utc().date().replace_day(1).unwrap();
 
     for (date, wl_by_user) in wl_by_date_by_user.into_iter() {
-        let mut start_of_month_table = date.replace_day(1).unwrap();
+        let mut start_of_month_table = date.clone().replace_day(1).unwrap();
 
         loop {
             update_opening_balance_amount(
                 pg_transaction,
                 get_archive_schema_name(start_of_month_table),
                 get_dynamic_table_name(OPENING_BALANCE_TABLE_NAME, start_of_month_table),
-                start_of_month_table,
+                date,
                 &wl_by_user,
             )
             .await?;
 
             start_of_month_table = add_month(start_of_month_table);
 
-            if start_of_month_table >= current_start_of_month {
+            if start_of_month_table > current_start_of_month {
                 break;
             }
         }
@@ -175,7 +175,7 @@ fn calculate_debt_by_bet(
     {
         state
             .username_by_user_id
-            .entry(user.id.clone())
+            .entry(user.id)
             .or_insert(user.username.clone());
 
         let total_amount = bet

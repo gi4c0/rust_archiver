@@ -1,14 +1,13 @@
 use claims::assert_ok;
 use dotenvy::dotenv;
-use lib::archiver::opening_balance::loader::get_last_opening_balance_creation_date;
 use lib::archiver::run;
 use lib::connectors::load_connectors;
 use lib::consts::OPENING_BALANCE_TABLE_NAME;
 use lib::helpers::query_helper::{get_archive_schema_name, get_dynamic_table_name};
-use lib::helpers::State;
+use lib::helpers::{get_hong_kong_11_hours_from_date, State};
 use lib::types::UserID;
 use serde_json::json;
-use sqlx::PgPool;
+use sqlx::{PgPool, Row};
 use time::{Duration, OffsetDateTime};
 use wiremock::matchers::{method, path, path_regex};
 use wiremock::{Mock, ResponseTemplate};
@@ -25,9 +24,9 @@ async fn finds_last_opening_balance_and_creates_new_records() {
 
     let pg_pool = create_pg_test_connection().await;
     let maria_db_pool = create_maria_db_test_connection().await;
-    let start_date = OffsetDateTime::now_utc().date() - Duration::days(1);
+    let start_date = OffsetDateTime::now_utc().date() - Duration::days(100);
 
-    let test_data = prepare_data(&pg_pool, &maria_db_pool, start_date).await;
+    let t_data = prepare_data(&pg_pool, &maria_db_pool, start_date).await;
 
     Mock::given(method("POST"))
         .and(path("/getTransactionHistoryResult"))
@@ -36,8 +35,9 @@ async fn finds_last_opening_balance_and_creates_new_records() {
             "desc": "Success",
             "url": "http://localhost"
         })))
-        .expect(1..)
-        .mount(&test_data.mock_servers.sexy_mock_server)
+        // .expect(1..)
+        .named("sexy")
+        .mount(&t_data.mock_servers.sexy_mock_server)
         .await;
 
     Mock::given(method("POST"))
@@ -46,8 +46,9 @@ async fn finds_last_opening_balance_and_creates_new_records() {
             "error_code": "OK",
             "game_history_url": "http://localhost"
         })))
-        .expect(1..)
-        .mount(&test_data.mock_servers.ameba_mock_server)
+        // .expect(1..)
+        .named("ameba")
+        .mount(&t_data.mock_servers.ameba_mock_server)
         .await;
 
     Mock::given(method("POST"))
@@ -60,8 +61,9 @@ async fn finds_last_opening_balance_and_creates_new_records() {
                 "Url": "http://localhost"
             }
         })))
-        .expect(1..)
-        .mount(&test_data.mock_servers.arcadia_mock_server)
+        // .expect(1..)
+        .named("arcadia")
+        .mount(&t_data.mock_servers.arcadia_mock_server)
         .await;
 
     Mock::given(method("POST"))
@@ -73,8 +75,9 @@ async fn finds_last_opening_balance_and_creates_new_records() {
                 "record": "http://localhost"
             }
         })))
-        .expect(1..)
-        .mount(&test_data.mock_servers.dot_connections_mock_server)
+        // .expect(1..)
+        .named("dot_connections")
+        .mount(&t_data.mock_servers.dot_connections_mock_server)
         .await;
 
     Mock::given(method("GET"))
@@ -82,8 +85,9 @@ async fn finds_last_opening_balance_and_creates_new_records() {
         .respond_with(ResponseTemplate::new(200).set_body_json(json!({
             "urls": ["http://localhost"]
         })))
-        .expect(1..)
-        .mount(&test_data.mock_servers.king_maker_mock_server)
+        // .expect(1..)
+        .named("king_maker")
+        .mount(&t_data.mock_servers.king_maker_mock_server)
         .await;
 
     Mock::given(method("POST"))
@@ -93,15 +97,17 @@ async fn finds_last_opening_balance_and_creates_new_records() {
             "error": 0,
             "url": "http://localhost"
         })))
-        .expect(1..)
-        .mount(&test_data.mock_servers.pragamtic_mock_server)
+        // .expect(1..)
+        .named("pragmatic")
+        .mount(&t_data.mock_servers.pragamtic_mock_server)
         .await;
 
     Mock::given(method("POST"))
         .and(path("/Player/GetGameMinDetailURLTokenBySeq"))
         .respond_with(ResponseTemplate::new(200).set_body_string(RS_RESPONSE))
-        .expect(1..)
-        .mount(&test_data.mock_servers.royal_slot_gaming_mock_server)
+        // .expect(1..)
+        .named("royal_slot")
+        .mount(&t_data.mock_servers.royal_slot_gaming_mock_server)
         .await;
 
     let connectors = load_connectors(&pg_pool).await.unwrap();
@@ -110,40 +116,49 @@ async fn finds_last_opening_balance_and_creates_new_records() {
     let result = run(&mut state).await;
     assert_ok!(result);
 
-    let credit_user_ids = get_credit_players_ids(&state.pg).await;
+    // Check opening balance
+    let mut total_wl: i64 = 0;
+    let yesterday11 =
+        get_hong_kong_11_hours_from_date(OffsetDateTime::now_utc().date() - Duration::days(1));
 
-    for id in credit_user_ids {
-        assert!(state.is_credit_player(id));
+    for (_, bets) in &t_data.bets_by_provider {
+        for bet in bets {
+            if bet.user_id == t_data.credit_player.id && bet.last_status_change < yesterday11 {
+                total_wl += bet.wl.unwrap_or(0);
+            }
+        }
     }
 
-    let now = OffsetDateTime::now_utc().date() + Duration::DAY;
+    let last_opening_balance_amount =
+        get_last_opening_balance_amount(&state.pg, t_data.credit_player.id).await;
 
-    let last_opening_balance_record = get_last_opening_balance_creation_date(
-        &state.pg,
-        get_archive_schema_name(now),
-        get_dynamic_table_name(OPENING_BALANCE_TABLE_NAME, now),
-    )
-    .await;
-    assert_eq!(last_opening_balance_record.unwrap().unwrap(), now);
+    assert_eq!(total_wl, last_opening_balance_amount);
 }
 
-async fn get_credit_players_ids(pg_pool: &PgPool) -> Vec<UserID> {
-    let player_ids = sqlx::query!(
-        r#"
-            SELECT
-                user_id
-            FROM public.balance b
-            JOIN public.user u ON b.user_id = u.id
-            WHERE credit > 0 AND u.position = 6
-            AND u.activated_at IS NOT NULL;
-        "#
-    )
-    .fetch_all(pg_pool)
-    .await
-    .unwrap();
+async fn get_last_opening_balance_amount(pg: &PgPool, user_id: UserID) -> i64 {
+    let yesterday = OffsetDateTime::now_utc().date() - Duration::days(1);
+    let schema = get_archive_schema_name(yesterday);
+    let table = get_dynamic_table_name(OPENING_BALANCE_TABLE_NAME, yesterday);
+    let opening_balance_date = get_hong_kong_11_hours_from_date(yesterday);
 
-    player_ids
-        .into_iter()
-        .map(|row| row.user_id.into())
-        .collect()
+    let row = sqlx::query(&format!(
+        r#"
+            SELECT amount FROM {schema}.{table}
+            WHERE user_id = $1 AND creation_date = $2
+        "#
+    ))
+    .bind(user_id)
+    .bind(opening_balance_date)
+    .fetch_one(pg)
+    .await
+    .expect(&format!(
+        "Failed to fetch last opening balance for {}",
+        user_id
+    ));
+
+    let amount: i64 = row
+        .try_get("amount")
+        .expect("Failed to get amount from 'get_last_opening_balance_amount' query");
+
+    amount
 }
