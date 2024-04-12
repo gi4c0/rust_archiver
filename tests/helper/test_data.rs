@@ -87,6 +87,10 @@ impl MockServers {
     }
 }
 
+pub fn get_yesterday_11() -> OffsetDateTime {
+    get_hong_kong_11_hours_from_date(OffsetDateTime::now_utc().date() - Duration::days(1))
+}
+
 pub async fn prepare_data(
     pg_pool: &PgPool,
     maria_db_pool: &MySqlPool,
@@ -200,26 +204,26 @@ async fn generate_users_and_return_players(pg_pool: &PgPool, maria_db: &MySqlPoo
     (players.pop().unwrap(), players.pop().unwrap())
 }
 
+pub const TEST_PROVIDERS: [GameProvider; 9] = [
+    GameProvider::LiveCasino(LiveCasinoProvider::Sexy),
+    GameProvider::Slot(SlotProvider::Ameba),
+    GameProvider::OnlineCasino(OnlineCasinoProvider::Arcadia),
+    GameProvider::Slot(SlotProvider::Relax), // dot connections
+    GameProvider::OnlineCasino(OnlineCasinoProvider::Kingmaker),
+    GameProvider::Slot(SlotProvider::Pragmatic),
+    GameProvider::Slot(SlotProvider::RoyalSlotGaming),
+    GameProvider::Lottery(Lottery::StockDowJones),
+    GameProvider::Sport(Sportsbook::SingleNonLive),
+];
+
 async fn create_bets(
     pg_pool: &PgPool,
     users: &[User],
     start_date: Date,
 ) -> HashMap<GameProvider, Vec<Bet>> {
-    let providers = vec![
-        GameProvider::LiveCasino(LiveCasinoProvider::Sexy),
-        GameProvider::Slot(SlotProvider::Ameba),
-        GameProvider::OnlineCasino(OnlineCasinoProvider::Arcadia),
-        GameProvider::Slot(SlotProvider::Relax), // dot connections
-        GameProvider::OnlineCasino(OnlineCasinoProvider::Kingmaker),
-        GameProvider::Slot(SlotProvider::Pragmatic),
-        GameProvider::Slot(SlotProvider::RoyalSlotGaming),
-        GameProvider::Lottery(Lottery::StockDowJones),
-        GameProvider::Sport(Sportsbook::SingleNonLive),
-    ];
-
     let mut bets_by_provider: HashMap<GameProvider, Vec<Bet>> = HashMap::new();
 
-    for provider in providers {
+    for provider in TEST_PROVIDERS {
         let mut rs_provider_bet_id = 1;
         let mut current_iteration_date = OffsetDateTime::new_utc(start_date, time!(0:00));
         let now = OffsetDateTime::now_utc();
@@ -250,14 +254,14 @@ async fn create_bets(
                         replay: "".to_string(),
                         details: None,
                         currency: Currency("THB".to_string()),
-                        funds_delta: [0, 0, 0, 0, 0, 0, 1],
+                        funds_delta: [1, 2, 3, 4, 5, 6, 7],
                         valid_amount: Some(2),
                         transactions: vec![r#"{ "provider": "lol" }"#.to_string()],
                         creation_date: current_iteration_date - Duration::seconds(1),
                         pt_by_position: [0, 0, 0, 0, 0, 0, 1],
                         transaction_ids: vec!["1".to_string(), "2".to_string()],
                         provider_bet_id,
-                        commission_amount: [0, 0, 0, 0, 0, 0, 1],
+                        commission_amount: [1, 2, 3, 4, 5, 6, 7],
                         commission_percent: [0, 1, 2, 3, 4, 5, 6],
                         provider_game_vendor_id: ProviderGameVendorID(
                             // Need to be the same as provider game that was seeded in migrations

@@ -4,8 +4,8 @@ use serde::{Deserialize, Serialize};
 pub mod bet;
 pub mod provider;
 
-#[repr(u8)]
-#[derive(Clone, Deserialize, Serialize, Debug, Copy, PartialEq, Eq)]
+#[derive(Clone, Deserialize, Serialize, Debug, Copy, PartialEq, Eq, sqlx::Type)]
+#[repr(i16)]
 pub enum PositionEnum {
     Owner = 0,
     Company = 1,

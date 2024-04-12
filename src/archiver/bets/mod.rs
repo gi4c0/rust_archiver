@@ -68,7 +68,7 @@ pub async fn handle_bet_chunk(
             .and_modify(|e| *e += bet.wl.unwrap_or(0))
             .or_insert(bet.wl.unwrap_or(0));
 
-        if !state.credit_players.contains_key(&bet.user_id) {
+        if state.credit_players.contains_key(&bet.user_id) {
             let existing_debts = debts.entry(figures_date).or_insert_with(HashMap::new);
             calculate_debt_by_bet(&bet, existing_debts, state)?;
         }

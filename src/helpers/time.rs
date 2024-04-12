@@ -20,7 +20,7 @@ pub fn add_month(date: Date) -> Date {
 pub fn get_figures_date(bet_date: OffsetDateTime) -> Date {
     let threshold = bet_date.replace_time(time!(3:00));
 
-    if bet_date > threshold {
+    if bet_date >= threshold {
         return (threshold + Duration::days(1)).date();
     }
 
