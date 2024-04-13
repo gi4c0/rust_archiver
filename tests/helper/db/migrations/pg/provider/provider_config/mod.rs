@@ -12,22 +12,12 @@ mod royal_slot_gaming;
 mod sexy;
 
 pub async fn create_table_and_seed(pg: &PgPool, mock_urls: MockUrls) {
-    sqlx::query(
-        r#"
-            create table if not exists public.provider_config
-            (
-                game_provider varchar(255) not null
-                    constraint "PK_49e30eb371654ab9bfbb63ebb02"
-                        primary key
-                    constraint "FK_49e30eb371654ab9bfbb63ebb02"
-                        references public.provider,
-                config        text         not null
-            )
-        "#,
-    )
-    .execute(pg)
-    .await
-    .expect("Failed to create PG 'provider_config' table");
+    let sql = include_str!("../../../../../../../migrations/20240413082655_provider_config.sql");
+
+    sqlx::query(sql)
+        .execute(pg)
+        .await
+        .expect("Failed to create PG 'provider_config' table");
 
     seed(pg, mock_urls).await;
 }

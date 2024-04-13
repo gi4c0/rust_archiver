@@ -3,21 +3,12 @@ use sqlx::{Execute, PgPool, Postgres, QueryBuilder};
 use strum::VariantArray;
 
 pub async fn create_table_and_seed(pg: &PgPool) {
-    sqlx::query(
-        r#"
-            create table if not exists public.provider_game_kind
-            (
-                alias    varchar(50)  not null
-                    constraint "PK_19ceef9d735203ddd9380aad3f2"
-                        primary key,
-                label    varchar(100) not null,
-                ordering integer      not null
-            );
-        "#,
-    )
-    .execute(pg)
-    .await
-    .expect("Failed to create PG 'provider_game_kind' table");
+    let sql = include_str!("../../../../../../migrations/20240412203423_provider_game_kind.sql");
+
+    sqlx::query(sql)
+        .execute(pg)
+        .await
+        .expect("Failed to create PG 'provider_game_kind' table");
 
     seed(pg).await;
 }
