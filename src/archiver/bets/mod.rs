@@ -17,11 +17,7 @@ use crate::{
 
 use self::{
     debts::{calculate_debt_by_bet, create_credit_debt_models},
-    details::extend_bet_with_details,
-    loader::{
-        delete_bets_by_ids, get_upline, insert_bet_details_to_details_table, save_debts, Bet,
-        CreditDebt,
-    },
+    loader::{delete_bets_by_ids, get_upline, save_debts, Bet, CreditDebt},
 };
 
 use super::opening_balance::loader::update_opening_balance_amount;
@@ -48,7 +44,7 @@ pub async fn handle_bet_chunk(
     let mut bet_ids: Vec<BetID> = vec![];
     let mut debts: DebtsByDate = HashMap::new();
     let mut wl_by_date_by_user: WlByDateByUser = HashMap::new();
-    let mut bet_details = vec![];
+    // let mut bet_details = vec![];
 
     for bet in bets {
         bet_ids.push(bet.id);
@@ -68,7 +64,7 @@ pub async fn handle_bet_chunk(
         wl_by_date_by_user
             .entry(figures_date)
             .or_insert_with(HashMap::new)
-            .entry(bet.user_id.clone())
+            .entry(bet.user_id)
             .and_modify(|e| *e += bet.wl.unwrap_or(0))
             .or_insert(bet.wl.unwrap_or(0));
 
@@ -82,9 +78,9 @@ pub async fn handle_bet_chunk(
         // }
     }
 
-    if bet_details.len() > 0 {
-        insert_bet_details_to_details_table(&state.maria_db, bet_details).await?;
-    }
+    // if bet_details.len() > 0 {
+    //     insert_bet_details_to_details_table(&state.maria_db, bet_details).await?;
+    // }
 
     save_all(
         pg_transaction,

@@ -51,11 +51,12 @@ pub fn calculate_debt_by_bet(
     existing_figures: &mut HashMap<UserID, CurrencyAmount>,
     state: &mut State,
 ) -> Result<()> {
-    for user in state
+    let bet_user_upline = state
         .upline
         .get(&bet.user_id)
-        .with_context(|| format!("Not found upline for user: {}", &bet.user_id))?
-    {
+        .with_context(|| format!("Not found upline for user: {}", &bet.user_id))?;
+
+    for user in bet_user_upline {
         state
             .username_by_user_id
             .entry(user.id)
@@ -81,7 +82,7 @@ pub fn calculate_debt_by_bet(
                 })?;
 
         existing_figures
-            .entry(user.id.clone())
+            .entry(user.id)
             .and_modify(|e| e.amount += total_amount)
             .or_insert_with(|| CurrencyAmount {
                 currency: bet.currency.clone(),
