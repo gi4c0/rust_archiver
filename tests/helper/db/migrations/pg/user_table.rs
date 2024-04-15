@@ -1,7 +1,7 @@
 use sqlx::PgPool;
 
 pub async fn create_user_table(pg: &PgPool) {
-    let sql = include_str!("../../../../../migrations/20240412202720_user.sql");
+    let sql = include_str!("../../../../../migrations/20240412106555_user.sql");
 
     sqlx::query(sql)
         .execute(pg)

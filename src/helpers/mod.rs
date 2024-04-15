@@ -24,7 +24,7 @@ pub struct State {
     pub wl_by_date_by_user: HashMap<Date, HashMap<UserID, i64>>,
     pub connectors: Connectors,
     pub pg: PgPool,
-    pub mysql: MySqlPool,
+    pub maria_db: MySqlPool,
 }
 
 impl State {
@@ -36,7 +36,7 @@ impl State {
             upline: HashMap::new(),
             wl_by_date_by_user: HashMap::new(),
             pg,
-            mysql,
+            maria_db: mysql,
         }
     }
 

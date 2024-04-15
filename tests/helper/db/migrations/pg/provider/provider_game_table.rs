@@ -7,7 +7,7 @@ pub const PROVIDER_VENDOR_ID: &str = "1";
 pub const PROVIDER_GAME_LABEL: &str = "Game label";
 
 pub async fn create_table_and_seed(pg: &PgPool) {
-    let sql = include_str!("../../../../../../migrations/20240412165653_provider_game.sql");
+    let sql = include_str!("../../../../../../migrations/20240412165558_provider_game.sql");
 
     sqlx::query(sql)
         .execute(pg)

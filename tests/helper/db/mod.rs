@@ -17,7 +17,7 @@ pub async fn create_pg_test_connection() -> PgPool {
                 .parse()
                 .expect("DB_PORT is not a number"),
         )
-        .database("archiver_rust_test")
+        .database("alexpan") // TODO: use env var
         .username(&env::var("TYPEORM_USERNAME").expect("TYPEORM_USERNAME is not set"))
         .password(&env::var("TYPEORM_PASSWORD").expect("TYPEORM_PASSWORD is not set"));
 
@@ -27,7 +27,7 @@ pub async fn create_pg_test_connection() -> PgPool {
         .await
         .expect("Failed to connect to PostgreSQL DB");
 
-    drop_and_create_pg_public_schema(&conn).await;
+    // drop_and_create_pg_public_schema(&conn).await;
 
     conn
 }

@@ -42,7 +42,7 @@ pub enum OnlineCasinoProvider {
     AstroTech,
     #[strum(serialize = "iconic_gaming_online_casino")]
     IconicGaming,
-    #[strum(serialize = "funta_online_casino")]
+    #[strum(serialize = "fun_ta_online_casino")]
     FunTa,
     #[strum(serialize = "all_way_spin_online_casino")]
     AllWaySpin,

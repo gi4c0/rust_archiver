@@ -18,7 +18,7 @@ use super::GameProvider;
 pub enum LiveCasinoProvider {
     #[strum(serialize = "sexy")]
     Sexy,
-    #[strum(serialize = "pragmatic")]
+    #[strum(serialize = "pragmatic_live_casino")]
     Pragmatic,
     #[strum(serialize = "sa")]
     SA,

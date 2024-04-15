@@ -17,7 +17,7 @@ pub struct AmebaConfig {
     pub secret_key: String,
     pub api_url: Url,
     #[serde(rename = "siteID")]
-    pub site_id: String,
+    pub site_id: i64,
     pub ip_list: Vec<Ipv4Addr>,
 }
 
@@ -34,7 +34,7 @@ impl Connector {
         let payload = GetRoundHistoryPayload {
             round_id: bet_id.clone(),
             action: "get_game_history_url",
-            site_id: self.config.site_id.clone(),
+            site_id: self.config.site_id,
             account_name: username.clone(),
         };
 
@@ -58,7 +58,7 @@ impl Connector {
 #[derive(Serialize)]
 struct GetRoundHistoryPayload {
     action: &'static str,
-    site_id: String,
+    site_id: i64,
     account_name: Username,
     round_id: ProviderBetID,
 }

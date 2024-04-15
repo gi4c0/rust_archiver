@@ -140,7 +140,7 @@ async fn get_provider_configs(pg_pool: &PgPool) -> Result<Vec<ProviderConfig>> {
                 'ameba',
                 'arcadia',
                 'kingmaker',
-                'pragmatic',
+                'pragmatic_live_casino',
                 'royal_slot_gaming',
                 'relax'
             )

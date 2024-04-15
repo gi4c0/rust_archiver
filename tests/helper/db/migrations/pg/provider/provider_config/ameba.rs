@@ -9,7 +9,7 @@ pub fn get_provider_config(mock_url: String) -> (String, GameProvider) {
         secret_key: "secret".to_string(),
         ip_list: vec![],
         api_url: Url(mock_url),
-        site_id: "site_id".to_string(),
+        site_id: 1111,
     };
 
     (

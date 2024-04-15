@@ -6,7 +6,10 @@ create table if not exists public."user"
     username         varchar(255)
         constraint "UQ_78a916df40e02a9deb1c4b75edb"
             unique,
-    position         smallint                        not null,
+    remark           text,
+    position         smallint                        not null
+        constraint "FK_fb3e12ff405704f58e81b2e92de"
+            references public.position,
     parent_id        uuid
         constraint "FK_acb096eef4d8b5acdd7acbb5c84"
             references public."user"
@@ -26,4 +29,6 @@ create table if not exists public."user"
     salt             varchar(500)                    not null,
     password         varchar(500),
     currency         varchar(10)
+        constraint "FK_734822a203385b5721e5e071e04"
+            references public.currency
 );

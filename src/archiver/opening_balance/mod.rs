@@ -1,6 +1,6 @@
 use anyhow::bail;
 use sqlx::PgPool;
-use time::{Date, Duration, Month, OffsetDateTime};
+use time::{Date, Duration, OffsetDateTime};
 use uuid::Uuid;
 
 pub mod loader;
@@ -10,7 +10,7 @@ use crate::{
     helpers::{
         get_hong_kong_11_hours, get_hong_kong_11_hours_from_date,
         query_helper::{get_archive_schema_name, get_dynamic_table_name},
-        State,
+        subtract_one_month, State,
     },
 };
 
@@ -28,7 +28,7 @@ pub async fn create_opening_balance_records(state: &mut State) -> anyhow::Result
         return Ok(());
     }
 
-    let limit: i64 = 100;
+    let limit: i64 = 2000;
     let mut players_offset: i64 = 0;
 
     loop {
@@ -52,6 +52,7 @@ pub async fn create_opening_balance_records(state: &mut State) -> anyhow::Result
 
         loop {
             new_opening_balance_date += Duration::days(1);
+
             let opening_balance_records: Vec<OpeningBalance> = opening_balance_records
                 .iter()
                 .map(|ob| OpeningBalance {
@@ -84,7 +85,7 @@ pub async fn create_opening_balance_records(state: &mut State) -> anyhow::Result
 }
 
 async fn find_last_opening_balance_record(pool: &PgPool) -> anyhow::Result<Date> {
-    let mut current_date = get_hong_kong_11_hours().date();
+    let mut current_date = get_hong_kong_11_hours().date().replace_day(1).unwrap();
 
     loop {
         if current_date.year() == 2020 {
@@ -104,17 +105,4 @@ async fn find_last_opening_balance_record(pool: &PgPool) -> anyhow::Result<Date>
 
         current_date = subtract_one_month(current_date);
     }
-}
-
-fn subtract_one_month(date: Date) -> Date {
-    let month = date.month();
-    let mut year = date.year();
-
-    if month == Month::January {
-        year -= 1;
-    }
-
-    let month = month.previous();
-
-    Date::from_calendar_date(year, month, 1).unwrap()
 }

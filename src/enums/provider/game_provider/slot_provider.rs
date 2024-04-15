@@ -60,7 +60,7 @@ pub enum SlotProvider {
     AllWaySpin,
     #[strum(serialize = "booongo")]
     Booongo,
-    #[strum(serialize = "funta_slot")]
+    #[strum(serialize = "fun_ta_slot")]
     FunTa,
     #[strum(serialize = "iconic_gaming_slot")]
     IconicGaming,

@@ -10,6 +10,7 @@ mod bet_status_table;
 mod bet_tables;
 mod currency_table;
 mod lottery_bet_table;
+mod position_table;
 pub mod provider;
 mod user_table;
 mod user_upline_table;
@@ -25,11 +26,12 @@ pub struct MockUrls {
 }
 
 pub async fn create_pg_tables_and_seed(pg: &PgPool, mock_urls: MockUrls) {
+    position_table::create_table_and_seed(pg).await;
+    currency_table::create_table_and_seed(pg).await;
     create_user_table(pg).await;
     user_upline_table::create_table(pg).await;
     create_balance_table(pg).await;
     bet_status_table::create_table_and_seed(pg).await;
-    currency_table::create_table_and_seed(pg).await;
     create_provider_bet_tables(pg).await;
     create_lottery_bet_table(pg).await;
     provider::create_tables_and_seed(pg, mock_urls).await;

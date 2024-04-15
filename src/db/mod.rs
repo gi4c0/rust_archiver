@@ -15,6 +15,7 @@ pub async fn create_pg_connection() -> PgPool {
                 .parse()
                 .expect("DB_PORT is not a number"),
         )
+        .database("alexpan")
         .username(&env::var("TYPEORM_USERNAME").expect("TYPEORM_USERNAME is not set"))
         .password(&env::var("TYPEORM_PASSWORD").expect("TYPEORM_PASSWORD is not set"));
 

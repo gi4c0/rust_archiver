@@ -42,7 +42,7 @@ impl FromStr for GameProvider {
     fn from_str(value: &str) -> Result<Self> {
         match value {
             "sexy" => Ok(GameProvider::LiveCasino(LiveCasinoProvider::Sexy)),
-            "pragmatic" => Ok(GameProvider::LiveCasino(LiveCasinoProvider::Pragmatic)),
+            "pragmatic_live_casino" => Ok(GameProvider::LiveCasino(LiveCasinoProvider::Pragmatic)),
             "sa" => Ok(GameProvider::LiveCasino(LiveCasinoProvider::SA)),
             "ag" => Ok(GameProvider::LiveCasino(LiveCasinoProvider::AG)),
             "pretty" => Ok(GameProvider::LiveCasino(LiveCasinoProvider::Pretty)),

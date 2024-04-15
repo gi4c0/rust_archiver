@@ -3,7 +3,7 @@ use sqlx::{Execute, PgPool, Postgres, QueryBuilder};
 use strum::VariantArray;
 
 pub async fn create_table_and_seed(pg: &PgPool) {
-    let sql = include_str!("../../../../../../migrations/20240412165733_product.sql");
+    let sql = include_str!("../../../../../../migrations/20240412165555_product.sql");
 
     sqlx::query(sql)
         .execute(pg)

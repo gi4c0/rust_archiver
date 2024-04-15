@@ -26,3 +26,16 @@ pub fn get_figures_date(bet_date: OffsetDateTime) -> Date {
 
     threshold.date()
 }
+
+pub fn subtract_one_month(date: Date) -> Date {
+    let month = date.month();
+    let mut year = date.year();
+
+    if month == Month::January {
+        year -= 1;
+    }
+
+    let month = month.previous();
+
+    Date::from_calendar_date(year, month, 1).unwrap()
+}

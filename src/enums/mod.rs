@@ -1,10 +1,12 @@
-use parse_display::Display;
 use serde::{Deserialize, Serialize};
+use strum_macros::{Display, VariantArray};
 
 pub mod bet;
 pub mod provider;
 
-#[derive(Clone, Deserialize, Serialize, Debug, Copy, PartialEq, Eq, sqlx::Type)]
+#[derive(
+    Clone, Deserialize, Serialize, Debug, Copy, PartialEq, Eq, sqlx::Type, VariantArray, Display,
+)]
 #[repr(i16)]
 pub enum PositionEnum {
     Owner = 0,
@@ -34,36 +36,36 @@ impl From<i16> for PositionEnum {
 #[derive(Serialize, Deserialize, Display)]
 pub enum Language {
     #[serde(rename = "en")]
-    #[display("en")]
+    #[strum(serialize = "en")]
     English,
     #[serde(rename = "th")]
-    #[display("th")]
+    #[strum(serialize = "th")]
     Thai,
     #[serde(rename = "zh")]
-    #[display("zh")]
+    #[strum(serialize = "zh")]
     Chinese,
     #[serde(rename = "ms")]
-    #[display("ms")]
+    #[strum(serialize = "ms")]
     Malay,
     #[serde(rename = "id")]
-    #[display("id")]
+    #[strum(serialize = "id")]
     Indonesian,
     #[serde(rename = "lo")]
-    #[display("lo")]
+    #[strum(serialize = "lo")]
     Laotian,
     #[serde(rename = "vi")]
-    #[display("vi")]
+    #[strum(serialize = "vi")]
     Vietnamese,
     #[serde(rename = "tl")]
-    #[display("tl")]
+    #[strum(serialize = "tl")]
     Tagalog,
     #[serde(rename = "hi")]
-    #[display("hi")]
+    #[strum(serialize = "hi")]
     Hindi,
     #[serde(rename = "ko")]
-    #[display("ko")]
+    #[strum(serialize = "ko")]
     Korean,
     #[serde(rename = "ja")]
-    #[display("ja")]
+    #[strum(serialize = "ja")]
     Japanese,
 }

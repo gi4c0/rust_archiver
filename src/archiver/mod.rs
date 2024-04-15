@@ -1,6 +1,8 @@
 pub mod bets;
 pub mod opening_balance;
 
+use std::time::Instant;
+
 use anyhow::Context;
 use strum::VariantArray;
 
@@ -46,12 +48,15 @@ pub async fn run(state: &mut State) -> anyhow::Result<()> {
     ]
     .concat();
 
-    'provider_bet_for: for provider in providers {
-        let runtime_table_name = get_bet_table_name(provider);
+    'provider_bet_for: for provider in &providers {
+        let before = Instant::now();
+        let runtime_table_name = get_bet_table_name(*provider);
 
         loop {
             let bet_chunk = get_target_data_bench(&state.pg, &runtime_table_name, None).await?;
+
             if bet_chunk.len() == 0 {
+                println!("Finished {provider} in {:?}", before.elapsed());
                 continue 'provider_bet_for;
             }
 
@@ -61,7 +66,7 @@ pub async fn run(state: &mut State) -> anyhow::Result<()> {
                 .await
                 .context("Failed to start PG transaction")?;
 
-            handle_bet_chunk(provider, bet_chunk, state, &mut pg_transaction).await?;
+            handle_bet_chunk(*provider, bet_chunk, state, &mut pg_transaction).await?;
 
             pg_transaction
                 .commit()
@@ -70,8 +75,8 @@ pub async fn run(state: &mut State) -> anyhow::Result<()> {
         }
     }
 
-    update_bet_details(&state.mysql).await?;
-    truncate_maria_db_table(&state.mysql, BET_DETAIL_REPORT_TABLE_NAME).await?;
+    update_bet_details(&state.maria_db).await?;
+    truncate_maria_db_table(&state.maria_db, BET_DETAIL_REPORT_TABLE_NAME).await?;
 
     Ok(())
 }
@@ -87,6 +92,7 @@ pub async fn launch() {
     let mut state = State::new(connectors, pg, mysql);
 
     if let Err(e) = run(&mut state).await {
+        println!("{:?}", e);
         log_error(&state.pg, e).await.unwrap();
     }
 }

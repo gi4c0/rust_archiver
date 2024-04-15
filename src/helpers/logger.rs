@@ -11,7 +11,7 @@ pub async fn log_error(pg: &PgPool, err: anyhow::Error) -> Result<()> {
                 kind
             ) VALUES ($1, $2, $3)
         "#,
-        err.to_string(),
+        format!("{:?}", err),
         OffsetDateTime::now_utc(),
         ErrorKind::Error as i32,
     )
