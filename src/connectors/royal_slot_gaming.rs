@@ -1,7 +1,8 @@
-use std::{collections::HashMap, net::Ipv4Addr};
+use std::net::Ipv4Addr;
 
 use anyhow::{bail, Context, Result};
 use reqwest::{header::HeaderMap, Client};
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 
@@ -42,13 +43,13 @@ pub struct RoyalSlotGamingGameConfig {
 #[derive(Debug)]
 pub struct Connector {
     config: RoyalSlotGamingConfig,
-    games_by_vendor_id: HashMap<ProviderGameVendorID, RoyalSlotGamingGameConfig>,
+    games_by_vendor_id: FxHashMap<ProviderGameVendorID, RoyalSlotGamingGameConfig>,
 }
 
 impl Connector {
     pub fn new(
         config: RoyalSlotGamingConfig,
-        games_by_vendor_id: HashMap<ProviderGameVendorID, RoyalSlotGamingGameConfig>,
+        games_by_vendor_id: FxHashMap<ProviderGameVendorID, RoyalSlotGamingGameConfig>,
     ) -> Self {
         Self {
             config,

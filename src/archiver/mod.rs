@@ -1,8 +1,6 @@
 pub mod bets;
 pub mod opening_balance;
 
-use std::time::Instant;
-
 use anyhow::Context;
 use strum::VariantArray;
 
@@ -15,6 +13,8 @@ use crate::{
     },
     helpers::{logger::log_error, query_helper::get_bet_table_name, State},
 };
+
+const CHUNK_SIZE: usize = 100;
 
 use self::bets::{
     handle_bet_chunk,
@@ -49,14 +49,12 @@ pub async fn run(state: &mut State) -> anyhow::Result<()> {
     .concat();
 
     'provider_bet_for: for provider in &providers {
-        let before = Instant::now();
         let runtime_table_name = get_bet_table_name(*provider);
 
         loop {
             let bet_chunk = get_target_data_bench(&state.pg, &runtime_table_name, None).await?;
 
             if bet_chunk.len() == 0 {
-                println!("Finished {provider} in {:?}", before.elapsed());
                 continue 'provider_bet_for;
             }
 

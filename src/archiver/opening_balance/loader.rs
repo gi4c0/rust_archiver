@@ -1,6 +1,5 @@
-use std::collections::HashMap;
-
 use anyhow::{Context, Result};
+use rustc_hash::FxHashMap;
 use sqlx::{Execute, PgPool, Postgres, QueryBuilder, Row, Transaction};
 use time::{Date, OffsetDateTime};
 use uuid::Uuid;
@@ -157,7 +156,7 @@ pub async fn update_opening_balance_amount(
     schema: String,
     table_name: String,
     date: Date,
-    update_map: &HashMap<UserID, i64>,
+    update_map: &FxHashMap<UserID, i64>,
 ) -> Result<()> {
     let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(format!(
         r#"

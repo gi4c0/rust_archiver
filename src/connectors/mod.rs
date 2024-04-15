@@ -1,6 +1,7 @@
-use std::{collections::HashMap, str::FromStr};
+use std::str::FromStr;
 
 use anyhow::{anyhow, Context, Result};
+use rustc_hash::FxHashMap;
 use sqlx::PgPool;
 
 use crate::enums::provider::{
@@ -91,7 +92,7 @@ pub async fn load_connectors(pg_pool: &PgPool) -> Result<Connectors> {
     }
 
     let royal_slot_gaming_configs = load_royal_slot_game_configs(pg_pool).await?;
-    let mut games_by_vendor_id = HashMap::new();
+    let mut games_by_vendor_id = FxHashMap::default();
 
     for item in royal_slot_gaming_configs {
         games_by_vendor_id.insert(item.game_id.clone(), item);

@@ -1,6 +1,6 @@
-use std::collections::HashMap;
-
 use anyhow::{anyhow, Context, Result};
+use rustc_hash::FxHashMap;
+use smallvec::SmallVec;
 use time::Date;
 use uuid::Uuid;
 
@@ -16,14 +16,16 @@ use super::{
 
 use super::DebtsByDate;
 
+pub const DEBT_SIZE: usize = 3;
+
 pub fn create_credit_debt_models(
     figures: DebtsByDate,
     state: &State,
-) -> Result<HashMap<Date, Vec<CreditDebt>>> {
-    let mut result = HashMap::new();
+) -> Result<FxHashMap<Date, SmallVec<[CreditDebt; DEBT_SIZE]>>> {
+    let mut result = FxHashMap::default();
 
     for (date, debts_by_user) in figures.into_iter() {
-        let mut debts = vec![];
+        let mut debts = SmallVec::new();
 
         for (user_id, debt) in debts_by_user.into_iter() {
             debts.push(CreditDebt {
@@ -48,7 +50,7 @@ pub fn create_credit_debt_models(
 
 pub fn calculate_debt_by_bet(
     bet: &Bet,
-    existing_figures: &mut HashMap<UserID, CurrencyAmount>,
+    existing_figures: &mut FxHashMap<UserID, CurrencyAmount>,
     state: &mut State,
 ) -> Result<()> {
     let bet_user_upline = state

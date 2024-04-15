@@ -4,9 +4,8 @@ pub mod provider;
 pub mod query_helper;
 mod time;
 
-use std::collections::HashMap;
-
 use ::time::Date;
+use rustc_hash::FxHashMap;
 use sqlx::{MySqlPool, PgPool};
 pub use time::*;
 
@@ -18,10 +17,10 @@ use crate::{
 
 #[derive(Debug)]
 pub struct State {
-    pub credit_players: HashMap<UserID, bool>,
-    pub username_by_user_id: HashMap<UserID, Username>,
-    pub upline: HashMap<UserID, Vec<User>>,
-    pub wl_by_date_by_user: HashMap<Date, HashMap<UserID, i64>>,
+    pub credit_players: FxHashMap<UserID, bool>,
+    pub username_by_user_id: FxHashMap<UserID, Username>,
+    pub upline: FxHashMap<UserID, Vec<User>>,
+    pub wl_by_date_by_user: FxHashMap<Date, FxHashMap<UserID, i64>>,
     pub connectors: Connectors,
     pub pg: PgPool,
     pub maria_db: MySqlPool,
@@ -31,10 +30,10 @@ impl State {
     pub fn new(connectors: Connectors, pg: PgPool, mysql: MySqlPool) -> Self {
         Self {
             connectors,
-            credit_players: HashMap::new(),
-            username_by_user_id: HashMap::new(),
-            upline: HashMap::new(),
-            wl_by_date_by_user: HashMap::new(),
+            credit_players: FxHashMap::default(),
+            username_by_user_id: FxHashMap::default(),
+            upline: FxHashMap::default(),
+            wl_by_date_by_user: FxHashMap::default(),
             pg,
             maria_db: mysql,
         }

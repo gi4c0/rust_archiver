@@ -1,6 +1,8 @@
 use std::str::FromStr;
 
 use anyhow::{Context, Result};
+use arrayvec::ArrayVec;
+use smallvec::SmallVec;
 use sqlx::{
     prelude::FromRow, Execute, MySql, MySqlPool, PgPool, Postgres, QueryBuilder, Transaction,
 };
@@ -8,6 +10,7 @@ use time::{Date, Duration, OffsetDateTime};
 use uuid::Uuid;
 
 use crate::{
+    archiver::CHUNK_SIZE,
     consts::{BET_DETAIL_REPORT_TABLE_NAME, CREDIT_DEBT_TABLE_NAME, MARIA_DB_SCHEMA, SCHEMA},
     enums::{bet::BetStatus, provider::GameProvider, PositionEnum},
     helpers::{
@@ -20,11 +23,13 @@ use crate::{
     },
 };
 
+use super::debts::DEBT_SIZE;
+
 pub async fn get_target_data_bench(
     pg_pool: &PgPool,
     table: &str,
     start_date: Option<Date>,
-) -> anyhow::Result<Vec<Bet>> {
+) -> anyhow::Result<ArrayVec<Bet, CHUNK_SIZE>> {
     let yesterday =
         get_hong_kong_11_hours_from_date(OffsetDateTime::now_utc().date() - Duration::days(1));
 
@@ -66,7 +71,7 @@ pub async fn get_target_data_bench(
             AND
                 ({})
             ORDER BY last_status_change
-            LIMIT 100
+            LIMIT {CHUNK_SIZE}
         "#,
         where_query.join(" AND ")
     ))
@@ -78,7 +83,7 @@ pub async fn get_target_data_bench(
     .await
     .with_context(|| format!("Failed to fetch bet chunk from '{table}'"))?;
 
-    let mut bets = vec![];
+    let mut bets = ArrayVec::new();
 
     for bet in raw_bets {
         bets.push(bet.try_into_bet()?);
@@ -220,7 +225,7 @@ pub struct CreditDebt {
 
 pub async fn save_debts(
     pg_transaction: &mut Transaction<'_, Postgres>,
-    debts: Vec<CreditDebt>,
+    debts: SmallVec<[CreditDebt; DEBT_SIZE]>,
     date: Date,
 ) -> Result<()> {
     let db_schema = get_archive_schema_name(date);
@@ -273,7 +278,7 @@ pub async fn save_debts(
 }
 
 pub async fn delete_bets_by_ids(
-    bet_ids: Vec<BetID>,
+    bet_ids: ArrayVec<BetID, CHUNK_SIZE>,
     provider: GameProvider,
     transaction: &mut Transaction<'_, sqlx::Postgres>,
 ) -> Result<()> {

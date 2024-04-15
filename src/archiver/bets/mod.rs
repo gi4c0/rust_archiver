@@ -1,6 +1,7 @@
-use std::collections::HashMap;
-
 use anyhow::Result;
+use arrayvec::ArrayVec;
+use rustc_hash::FxHashMap;
+use smallvec::SmallVec;
 use sqlx::Transaction;
 use time::{Date, OffsetDateTime};
 
@@ -16,11 +17,11 @@ use crate::{
 };
 
 use self::{
-    debts::{calculate_debt_by_bet, create_credit_debt_models},
+    debts::{calculate_debt_by_bet, create_credit_debt_models, DEBT_SIZE},
     loader::{delete_bets_by_ids, get_upline, save_debts, Bet, CreditDebt},
 };
 
-use super::opening_balance::loader::update_opening_balance_amount;
+use super::{opening_balance::loader::update_opening_balance_amount, CHUNK_SIZE};
 
 mod debts;
 mod details;
@@ -32,18 +33,18 @@ struct CurrencyAmount {
     amount: i64,
 }
 
-type DebtsByDate = HashMap<Date, HashMap<UserID, CurrencyAmount>>;
-type WlByDateByUser = HashMap<Date, HashMap<UserID, i64>>;
+type DebtsByDate = FxHashMap<Date, FxHashMap<UserID, CurrencyAmount>>;
+type WlByDateByUser = FxHashMap<Date, FxHashMap<UserID, i64>>;
 
 pub async fn handle_bet_chunk(
     provider: GameProvider,
-    bets: Vec<Bet>,
+    bets: ArrayVec<Bet, CHUNK_SIZE>,
     state: &mut State,
     pg_transaction: &mut Transaction<'_, sqlx::Postgres>,
 ) -> anyhow::Result<()> {
-    let mut bet_ids: Vec<BetID> = vec![];
-    let mut debts: DebtsByDate = HashMap::new();
-    let mut wl_by_date_by_user: WlByDateByUser = HashMap::new();
+    let mut bet_ids: ArrayVec<BetID, CHUNK_SIZE> = ArrayVec::new();
+    let mut debts: DebtsByDate = FxHashMap::default();
+    let mut wl_by_date_by_user: WlByDateByUser = FxHashMap::default();
     // let mut bet_details = vec![];
 
     for bet in bets {
@@ -63,13 +64,13 @@ pub async fn handle_bet_chunk(
 
         wl_by_date_by_user
             .entry(figures_date)
-            .or_insert_with(HashMap::new)
+            .or_insert_with(FxHashMap::default)
             .entry(bet.user_id)
             .and_modify(|e| *e += bet.wl.unwrap_or(0))
             .or_insert(bet.wl.unwrap_or(0));
 
         if state.credit_players.contains_key(&bet.user_id) {
-            let existing_debts = debts.entry(figures_date).or_insert_with(HashMap::new);
+            let existing_debts = debts.entry(figures_date).or_insert_with(FxHashMap::default);
             calculate_debt_by_bet(&bet, existing_debts, state)?;
         }
 
@@ -97,8 +98,8 @@ pub async fn handle_bet_chunk(
 async fn save_all(
     pg_transaction: &mut Transaction<'_, sqlx::Postgres>,
     provider_or_bet_type: GameProvider,
-    debts: HashMap<Date, Vec<CreditDebt>>,
-    bet_ids: Vec<BetID>,
+    debts: FxHashMap<Date, SmallVec<[CreditDebt; DEBT_SIZE]>>,
+    bet_ids: ArrayVec<BetID, CHUNK_SIZE>,
     wl_by_date_by_user: WlByDateByUser,
 ) -> Result<()> {
     for (date, debts) in debts.into_iter() {
