@@ -1,9 +1,10 @@
+use anyhow::Result;
 use base64::{engine::general_purpose, Engine};
 use md5::{Digest, Md5};
 use openssl::symm::{Cipher, Crypter, Mode};
 use std::str;
 
-pub fn des_cbc_encrypt(target: &str, key: &str, iv: &str) -> anyhow::Result<String> {
+pub fn des_cbc_encrypt(target: &str, key: &str, iv: &str) -> Result<String> {
     let _provider = openssl::provider::Provider::try_load(None, "legacy", true).unwrap();
     // Select your cipher directly instead of using `from_name`
     // Example for DES in ECB mode (choose the correct function for your needs)
@@ -27,7 +28,7 @@ pub fn des_cbc_encrypt(target: &str, key: &str, iv: &str) -> anyhow::Result<Stri
     Ok(result)
 }
 
-pub fn des_cbc_decrypt(target: &str, key: &str, iv: &str) -> anyhow::Result<String> {
+pub fn des_cbc_decrypt(target: &str, key: &str, iv: &str) -> Result<String> {
     let _provider = openssl::provider::Provider::try_load(None, "legacy", true).unwrap();
     let encrypted_data = general_purpose::STANDARD.decode(target).unwrap();
 

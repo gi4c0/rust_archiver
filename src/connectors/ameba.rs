@@ -1,6 +1,6 @@
 use std::net::Ipv4Addr;
 
-use anyhow::{bail, Context};
+use anyhow::{bail, Context, Result};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
@@ -30,7 +30,7 @@ impl Connector {
         &self,
         username: &Username,
         bet_id: &ProviderBetID,
-    ) -> anyhow::Result<Url> {
+    ) -> Result<Url> {
         let payload = GetRoundHistoryPayload {
             round_id: bet_id.clone(),
             action: "get_game_history_url",

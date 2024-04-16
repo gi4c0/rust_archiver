@@ -1,4 +1,4 @@
-use anyhow::bail;
+use anyhow::{bail, Result};
 use sqlx::PgPool;
 use time::{Date, Duration, OffsetDateTime};
 use uuid::Uuid;
@@ -19,7 +19,7 @@ use self::loader::{
     insert_opening_balance_records, OpeningBalance,
 };
 
-pub async fn create_opening_balance_records(state: &mut State) -> anyhow::Result<()> {
+pub async fn create_opening_balance_records(state: &mut State) -> Result<()> {
     let last_opening_balance_date = find_last_opening_balance_record(&state.pg).await?;
     let tomorrow = OffsetDateTime::now_utc().date() + Duration::days(1);
 
@@ -84,7 +84,7 @@ pub async fn create_opening_balance_records(state: &mut State) -> anyhow::Result
     Ok(())
 }
 
-async fn find_last_opening_balance_record(pool: &PgPool) -> anyhow::Result<Date> {
+async fn find_last_opening_balance_record(pool: &PgPool) -> Result<Date> {
     let mut current_date = get_hong_kong_11_hours().date().replace_day(1).unwrap();
 
     loop {

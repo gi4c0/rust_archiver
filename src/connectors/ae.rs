@@ -1,6 +1,6 @@
 use std::net::Ipv4Addr;
 
-use anyhow::Context;
+use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 
 use crate::types::{ProviderBetID, Url, Username};
@@ -14,7 +14,7 @@ impl Connector {
         &self,
         username: &Username,
         provider_bet_id: &ProviderBetID,
-    ) -> anyhow::Result<Url> {
+    ) -> Result<Url> {
         let payload = GetHistoryResultPayload {
             platform: "SEXYBCRT".to_string(),
             cert: self.config.cert.clone(),

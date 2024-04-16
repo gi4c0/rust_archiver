@@ -42,10 +42,10 @@ type WlByDateByUser = FxHashMap<Date, FxHashMap<UserID, i64>>;
 
 pub async fn handle_bet_chunk(
     provider: GameProvider,
-    bets: ArrayVec<Bet, CHUNK_SIZE>,
+    bets: ChunkVec<Bet>,
     state: &mut State,
     pg_transaction: &mut Transaction<'_, sqlx::Postgres>,
-) -> anyhow::Result<()> {
+) -> Result<()> {
     let mut bet_ids: ChunkVec<BetID> = ArrayVec::new();
     let mut debts: DebtsByDate = FxHashMap::default();
 

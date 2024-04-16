@@ -1,7 +1,7 @@
 pub mod bets;
 pub mod opening_balance;
 
-use anyhow::Context;
+use anyhow::{Context, Result};
 use strum::VariantArray;
 
 use crate::{
@@ -21,7 +21,7 @@ use self::bets::{
     loader::{get_target_data_bench, truncate_maria_db_table, update_bet_details},
 };
 
-pub async fn run(state: &mut State) -> anyhow::Result<()> {
+pub async fn run(state: &mut State) -> Result<()> {
     opening_balance::create_opening_balance_records(state).await?;
 
     let providers: Vec<GameProvider> = [
@@ -48,8 +48,8 @@ pub async fn run(state: &mut State) -> anyhow::Result<()> {
     ]
     .concat();
 
-    'provider_bet_for: for provider in &providers {
-        let runtime_table_name = get_bet_table_name(*provider);
+    'provider_bet_for: for provider in providers {
+        let runtime_table_name = get_bet_table_name(provider);
 
         loop {
             let bet_chunk = get_target_data_bench(&state.pg, &runtime_table_name, None).await?;
@@ -64,7 +64,7 @@ pub async fn run(state: &mut State) -> anyhow::Result<()> {
                 .await
                 .context("Failed to start PG transaction")?;
 
-            handle_bet_chunk(*provider, bet_chunk, state, &mut pg_transaction).await?;
+            handle_bet_chunk(provider, bet_chunk, state, &mut pg_transaction).await?;
 
             pg_transaction
                 .commit()

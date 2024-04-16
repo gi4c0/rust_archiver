@@ -57,11 +57,7 @@ impl Connector {
         }
     }
 
-    pub async fn get_game_round_history(
-        &self,
-        bet: &Bet,
-        lang: Option<Language>,
-    ) -> anyhow::Result<Url> {
+    pub async fn get_game_round_history(&self, bet: &Bet, lang: Option<Language>) -> Result<Url> {
         let game = self.games_by_vendor_id.get(&bet.provider_game_vendor_id);
 
         let game_type: u8 = game.map_or(1, |g| {

@@ -29,7 +29,7 @@ pub async fn get_target_data_bench(
     pg_pool: &PgPool,
     table: &str,
     start_date: Option<Date>,
-) -> anyhow::Result<ChunkVec<Bet>> {
+) -> Result<ChunkVec<Bet>> {
     let yesterday =
         get_hong_kong_11_hours_from_date(OffsetDateTime::now_utc().date() - Duration::days(1));
 
@@ -192,7 +192,7 @@ pub struct User {
 pub async fn get_upline(
     user_id: &UserID,
     transaction: &mut Transaction<'_, sqlx::Postgres>,
-) -> anyhow::Result<Vec<User>> {
+) -> Result<Vec<User>> {
     sqlx::query_as!(
         User,
         r#"

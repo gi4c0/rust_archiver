@@ -18,7 +18,7 @@ pub async fn get_last_opening_balance_creation_date(
     pool: &PgPool,
     db_schema: String,
     table_name: String,
-) -> anyhow::Result<Option<Date>> {
+) -> Result<Option<Date>> {
     let result = sqlx::query(&format!(
         r#"
             SELECT
@@ -45,11 +45,7 @@ pub struct UserInfo {
     pub is_credit: bool,
 }
 
-pub async fn get_player_chunk(
-    pool: &PgPool,
-    limit: i64,
-    offset: i64,
-) -> anyhow::Result<Vec<UserInfo>> {
+pub async fn get_player_chunk(pool: &PgPool, limit: i64, offset: i64) -> Result<Vec<UserInfo>> {
     sqlx::query_as!(
         UserInfo,
         r#"
@@ -75,7 +71,7 @@ pub async fn insert_opening_balance_records(
     pool: &PgPool,
     records: Vec<OpeningBalance>,
     date: Date,
-) -> anyhow::Result<()> {
+) -> Result<()> {
     let db_schema = get_archive_schema_name(date);
     let table_name = get_dynamic_table_name(OPENING_BALANCE_TABLE_NAME, date);
 
@@ -126,7 +122,7 @@ pub async fn get_opening_balance_records(
     pool: &PgPool,
     date: Date,
     user_ids: Vec<UserID>,
-) -> anyhow::Result<Vec<OpeningBalance>> {
+) -> Result<Vec<OpeningBalance>> {
     let schema = get_archive_schema_name(date);
     let table = get_dynamic_table_name(OPENING_BALANCE_TABLE_NAME, date);
     let user_ids: Vec<Uuid> = user_ids.into_iter().map(|id| id.0).collect();

@@ -1,6 +1,6 @@
 use std::net::Ipv4Addr;
 
-use anyhow::Context;
+use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use serde_repr::Deserialize_repr;
 
@@ -35,7 +35,7 @@ impl Connector {
         Self { config }
     }
 
-    pub async fn get_bet_round_history(&self, bet: &Bet) -> anyhow::Result<Url> {
+    pub async fn get_bet_round_history(&self, bet: &Bet) -> Result<Url> {
         let mut payload = BetRoundHistoryPayload {
             game_id: bet.provider_game_vendor_id.clone(),
             language: Language::English,

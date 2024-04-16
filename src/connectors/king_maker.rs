@@ -1,6 +1,6 @@
 use std::net::Ipv4Addr;
 
-use anyhow::{bail, Context};
+use anyhow::{bail, Context, Result};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
@@ -32,7 +32,7 @@ impl Connector {
         &self,
         username: &Username,
         round_id: &ProviderBetID,
-    ) -> anyhow::Result<SuccessHistoryResponse> {
+    ) -> Result<SuccessHistoryResponse> {
         let result: Response<SuccessHistoryResponse> = Client::new()
             .get(format!(
                 "{}/history/providers/{}/rounds/{round_id}/users/{username}",
