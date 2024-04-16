@@ -13,12 +13,16 @@ use crate::{
         query_helper::{get_archive_schema_name, get_dynamic_table_name},
         State,
     },
-    types::{BetID, Currency, UserID},
+    types::{BetID, ChunkVec, Currency, UserID},
 };
 
 use self::{
     debts::{calculate_debt_by_bet, create_credit_debt_models, DEBT_SIZE},
-    loader::{delete_bets_by_ids, get_upline, save_debts, Bet, CreditDebt},
+    details::extend_bet_with_details,
+    loader::{
+        delete_bets_by_ids, get_upline, insert_bet_details_to_details_table, save_debts, Bet,
+        CreditDebt,
+    },
 };
 
 use super::{opening_balance::loader::update_opening_balance_amount, CHUNK_SIZE};
@@ -42,10 +46,11 @@ pub async fn handle_bet_chunk(
     state: &mut State,
     pg_transaction: &mut Transaction<'_, sqlx::Postgres>,
 ) -> anyhow::Result<()> {
-    let mut bet_ids: ArrayVec<BetID, CHUNK_SIZE> = ArrayVec::new();
+    let mut bet_ids: ChunkVec<BetID> = ArrayVec::new();
     let mut debts: DebtsByDate = FxHashMap::default();
+
     let mut wl_by_date_by_user: WlByDateByUser = FxHashMap::default();
-    // let mut bet_details = vec![];
+    let mut bet_details = vec![];
 
     for bet in bets {
         bet_ids.push(bet.id);
@@ -74,14 +79,14 @@ pub async fn handle_bet_chunk(
             calculate_debt_by_bet(&bet, existing_debts, state)?;
         }
 
-        // if let Some(detail) = extend_bet_with_details(state, &bet, provider).await {
-        //     bet_details.push(detail);
-        // }
+        if let Some(detail) = extend_bet_with_details(state, &bet, provider).await {
+            bet_details.push(detail);
+        }
     }
 
-    // if bet_details.len() > 0 {
-    //     insert_bet_details_to_details_table(&state.maria_db, bet_details).await?;
-    // }
+    if bet_details.len() > 0 {
+        insert_bet_details_to_details_table(&state.maria_db, bet_details).await?;
+    }
 
     save_all(
         pg_transaction,

@@ -1,9 +1,12 @@
+use arrayvec::ArrayVec;
 use derive_more::AsRef;
 use parse_display::Display;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use std::hash::Hash;
 use uuid::Uuid;
+
+use crate::archiver::CHUNK_SIZE;
 
 #[derive(
     PartialEq, Eq, Clone, Copy, Debug, FromRow, sqlx::Type, Deserialize, Serialize, Display, AsRef,
@@ -31,3 +34,5 @@ impl Hash for ProviderGameVendorID {
 #[derive(PartialEq, Eq, Clone, Debug, FromRow, sqlx::Type, Deserialize, Serialize, Display)]
 #[sqlx(transparent)]
 pub struct ProviderGameVendorLabel(pub String);
+
+pub type ChunkVec<T> = ArrayVec<T, CHUNK_SIZE>;

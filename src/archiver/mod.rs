@@ -14,7 +14,7 @@ use crate::{
     helpers::{logger::log_error, query_helper::get_bet_table_name, State},
 };
 
-const CHUNK_SIZE: usize = 100;
+pub const CHUNK_SIZE: usize = 1500;
 
 use self::bets::{
     handle_bet_chunk,

@@ -6,7 +6,8 @@ use crate::helper::{
     test_data::prepare_data,
 };
 
-// #[ignore]
+// This is test to generate test data for benchmark
+#[ignore]
 #[tokio::test]
 async fn create_benchmark_data() {
     dotenv().unwrap();

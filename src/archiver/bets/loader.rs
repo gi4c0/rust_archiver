@@ -18,7 +18,7 @@ use crate::{
         query_helper::{get_archive_schema_name, get_bet_table_name, get_dynamic_table_name},
     },
     types::{
-        AmountByPosition, BetID, Currency, ProviderBetID, ProviderGameVendorID,
+        AmountByPosition, BetID, ChunkVec, Currency, ProviderBetID, ProviderGameVendorID,
         ProviderGameVendorLabel, Url, UserID, Username,
     },
 };
@@ -29,7 +29,7 @@ pub async fn get_target_data_bench(
     pg_pool: &PgPool,
     table: &str,
     start_date: Option<Date>,
-) -> anyhow::Result<ArrayVec<Bet, CHUNK_SIZE>> {
+) -> anyhow::Result<ChunkVec<Bet>> {
     let yesterday =
         get_hong_kong_11_hours_from_date(OffsetDateTime::now_utc().date() - Duration::days(1));
 

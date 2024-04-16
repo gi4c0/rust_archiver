@@ -6,6 +6,7 @@ use lib::{
         bet::BetStatus,
         provider::{GameProvider, SlotProvider},
     },
+    helpers::get_hong_kong_11_hours_from_date,
     types::{BetID, Currency, ProviderBetID, ProviderGameVendorID, ProviderGameVendorLabel},
 };
 use sqlx::PgPool;
@@ -30,9 +31,10 @@ pub async fn create_bets(
     for provider in TEST_PROVIDERS {
         let mut rs_provider_bet_id = 1;
         let mut current_iteration_date = OffsetDateTime::new_utc(start_date, time!(0:00));
-        let now = OffsetDateTime::now_utc();
+        let yesterday11 =
+            get_hong_kong_11_hours_from_date(OffsetDateTime::now_utc().date() - Duration::days(1));
 
-        while current_iteration_date <= now {
+        while current_iteration_date <= yesterday11 {
             for user in users {
                 // We need numbers as provider bet id for royal_slot_gaming
                 let provider_bet_id =

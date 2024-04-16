@@ -27,7 +27,7 @@ pub async fn create_pg_test_connection() -> PgPool {
         .await
         .expect("Failed to connect to PostgreSQL DB");
 
-    // drop_and_create_pg_public_schema(&conn).await;
+    drop_and_create_pg_public_schema(&conn).await;
 
     conn
 }
